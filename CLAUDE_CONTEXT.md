@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.7.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.8.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -109,6 +109,25 @@ Written for the agent, not for humans.
    page, AIRIHA DMCA agent registration (can cover MyMeds AI too).
    Chat-lane work, not a build task.
 
+## S4d design decisions (final — from S4D_SPEC.md)
+
+1. **No realtime subscriptions.** Badge count fetched on load and after
+   user actions (rides every loadFeed); panel refreshes on open.
+   Supabase Realtime is the documented upgrade path, not MVP.
+2. **Notification taps switch to the Feed tab** — deep-linking to a
+   specific plant/profile is S4e's job (profile pages are the real
+   destinations; don't fake it early).
+3. **Google-only OAuth on web.** Sign in with Apple joins the
+   pre-App-Store checklist (S5 era). Anonymous session + Google =
+   `linkIdentity` (same auth.uid(), plants kept); no session =
+   `signInWithOAuth`. Dashboard side: Google provider enabled +
+   "manual linking" ON, redirect URI = the Supabase callback.
+4. **Sign out ONLY for non-anonymous sessions** — tripwire 12.
+5. **Setup sheet fires ONCE, after the FIRST successful plant log** —
+   never on app open. One-shot flag `ja_profile_prompted` (sacred).
+6. **The bell lives in the topbar** which hides on the Map tab —
+   accepted; badge visible on Feed/Plant/Profile.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -138,7 +157,10 @@ Written for the agent, not for humans.
 | S4c action sheet | `openSheet`, `openCardSheet`, `openCommentSheet`, `#action-sheet` | after comments |
 | S4c report | `openReportSheet`, `submitReport` | after sheet |
 | S4c block | `doBlock`, `unblockPlanter`, `isBlocked`, `blockedIds`, `#blocked-list` | after report |
-| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after block |
+| S4d notifications | `openNotifPanel`, `loadNotifBadge`, `#notif-panel`, `#notif-badge` | after block |
+| S4d setup sheet | `maybeShowSetupSheet`, `openSetupSheet`, `ja_profile_prompted` | after notifications |
+| S4d auth | `googleSignIn`, `doSignOut`, `renderEmailRow`, `#sign-in-row`, `#sign-out-row` | with S4a email upgrade |
+| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after setup sheet |
 | S4a email upgrade | `startEmailUpgrade`, `renderEmailRow`, `bumpLogCount` | after identity |
 | Profile hero (dynamic) | `id="profile-avatar"`, `id="profile-name-display"` | profile view |
 | Email upgrade row | `id="email-upgrade-row"` | settings, above AI key |
@@ -181,6 +203,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - **`ja_log_count` is SACRED** (S4a) — successful-plant-log counter; the
   one-time email nudge fires on exactly 3. Snapshot → mutate → verify
   read-back lives in `bumpLogCount()`.
+- **`ja_profile_prompted` is SACRED** (S4d) — one-shot flag for the
+  first-log setup sheet. Set at show time (with read-back verify in
+  `maybeShowSetupSheet()`); once '1' the sheet can never fire again.
 - Future app keys: prefix `ja_` (e.g. `ja_profile`, `ja_feed_radius`)
 - Once created, keys are **sacred — never rename without migration**
 - Snapshot before mutate, verify read-back (MyMeds `ProfileSystem` pattern)
@@ -217,6 +242,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     insert; RLS `with check` enforces they match the session. Copying
     the plants insert pattern (omitting user_id) fails with a
     not-null violation.
+12. **NEVER render Sign out for anonymous sessions.** signOut on an
+    anon user orphans their garden permanently (sb-* keys are the only
+    identity). Sign out appears ONLY when `user.is_anonymous === false`;
+    `doSignOut()` re-checks the session before calling signOut. This is
+    sacred-keys-adjacent — treat any change here as data-loss surface.
 
 ## Validate-after-edit checklist — skip none
 
@@ -251,6 +281,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   write-only reports (dashboard = mod queue), hide-from-me blocks with
   Settings list. Launch gate before promotion: ToS/guidelines + DMCA
   agent registration.
-- ⏳ S4d notifications panel
+- ✅ S4d bell + identity polish: notifications panel with unread badge
+  (poll-on-load, no realtime), first-log setup sheet, Google sign-in
+  (linkIdentity for anon → durable), guarded sign-out. Deep links +
+  profile pages = S4e.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

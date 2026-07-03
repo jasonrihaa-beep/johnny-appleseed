@@ -438,6 +438,128 @@ body.tab-map #map-view {
 }
 .blocked-empty { font-size: 13px; color: var(--stone-500); font-style: italic; padding: 10px 0 10px 12px; }
 
+/* ── S4d: notifications panel, badge, Google button, setup sheet ── */
+#notif-bell { position: relative; }
+#notif-badge {
+  display: none;
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--gold-500);
+  color: white;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 16px;
+  text-align: center;
+  font-family: var(--font-sans);
+  pointer-events: none;
+}
+#notif-badge.show { display: block; }
+
+#notif-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 26, 15, 0.45);
+  z-index: 400;
+}
+#notif-backdrop.open { display: block; }
+#notif-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 85%;
+  max-width: 360px;
+  background: var(--stone-100);
+  z-index: 401;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  box-shadow: -4px 0 24px rgba(28, 43, 30, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+#notif-panel.open { transform: translateX(0); }
+.notif-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--safe-top) + 14px) 12px 12px 20px;
+  border-bottom: 1px solid var(--stone-300);
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--ink);
+}
+#notif-list { flex: 1; overflow-y: auto; }
+.notif-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--stone-200);
+  cursor: pointer;
+}
+.notif-row:hover { background: var(--stone-200); }
+.notif-row.unread { background: var(--green-50); }
+.notif-text { flex: 1; font-size: 14px; color: var(--ink); line-height: 1.5; }
+.notif-time { font-size: 11px; color: var(--stone-500); flex-shrink: 0; }
+.notif-empty {
+  padding: 32px 24px;
+  font-size: 14px;
+  color: var(--stone-500);
+  font-style: italic;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--stone-300);
+  border-radius: 12px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.google-btn svg { width: 18px; height: 18px; stroke: var(--green-700); fill: none; stroke-width: 1.8; stroke-linecap: round; }
+.or-email-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--stone-500);
+  text-align: center;
+  padding: 12px 0 8px;
+}
+
+.setup-colors {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  padding: 4px 0 12px;
+}
+.setup-color {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.setup-color.selected { border-color: var(--gold-400); box-shadow: 0 0 0 2px white inset; }
+
 .feed-section-label {
   padding: 20px 20px 8px;
   font-size: 11px;
@@ -1172,8 +1294,9 @@ body.tab-map #map-view {
       <button class="icon-btn" aria-label="Search" onclick="showToast('Search coming soon')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
-      <button class="icon-btn" aria-label="Notifications" onclick="showToast('Notifications coming soon')">
+      <button class="icon-btn" id="notif-bell" aria-label="Notifications" onclick="openNotifPanel()">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notif-badge" aria-hidden="true"></span>
       </button>
     </div>
   </div>
@@ -1353,11 +1476,20 @@ body.tab-map #map-view {
 
       <div style="margin-bottom:28px">
         <div class="section-title">Settings</div>
+        <div class="settings-row" id="sign-in-row" onclick="googleSignIn()" style="display:none">
+          <span class="settings-row-label">Sign in</span>
+          <span class="settings-row-value">Google <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
         <div class="settings-row" id="email-upgrade-row" onclick="startEmailUpgrade()">
-          <span class="settings-row-label" id="email-upgrade-label">Add email to keep your garden</span>
+          <span class="settings-row-label" id="email-upgrade-label">Keep your garden</span>
           <span class="settings-row-value" id="email-upgrade-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
         <div id="email-upgrade-edit">
+          <button class="google-btn" onclick="googleSignIn()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.2A8.5 8.5 0 1 1 18 6"/><path d="M21 12h-9"/></svg>
+            Continue with Google
+          </button>
+          <div class="or-email-label">or use email</div>
           <input class="form-input" id="email-upgrade-input" type="email" placeholder="you@example.com" autocomplete="off">
           <div class="name-edit-actions">
             <button class="name-edit-btn save" onclick="submitEmailUpgrade()">Send link</button>
@@ -1381,13 +1513,17 @@ body.tab-map #map-view {
           <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
         <div id="blocked-list"></div>
+        <div class="settings-row" id="sign-out-row" onclick="confirmSignOut()" style="display:none">
+          <span class="settings-row-label">Sign out</span>
+          <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
         <div class="settings-row" onclick="showToast('Data cleared from this device')">
           <span class="settings-row-label" style="color:var(--red-700)">Clear my data</span>
           <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.7.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.8.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1420,6 +1556,18 @@ body.tab-map #map-view {
 <!-- S4c ACTION SHEET -->
 <div id="action-sheet-backdrop" onclick="closeSheet()"></div>
 <div id="action-sheet" role="menu"></div>
+
+<!-- S4d NOTIFICATIONS PANEL -->
+<div id="notif-backdrop" onclick="closeNotifPanel()"></div>
+<div id="notif-panel" role="dialog" aria-label="Notifications">
+  <div class="notif-head">
+    <span>Notifications</span>
+    <button class="icon-btn" aria-label="Close notifications" onclick="closeNotifPanel()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <div id="notif-list"></div>
+</div>
 
 <script>
 const VIEWS = ['map','feed','plant','profile'];
@@ -1884,8 +2032,9 @@ async function submitPlant() {
     document.getElementById('score-preview').classList.remove('visible');
     loadDbPins();
     loadFeed();
-    if (!myProfile) loadOwnProfile(); // first log created the anon profile
+    if (!myProfile) await loadOwnProfile(); // first log created the anon profile
     bumpLogCount();
+    maybeShowSetupSheet(); // one-shot, first log only (decision 5)
     setTimeout(() => switchTab('feed'), 1200);
   } catch (e) {
     showToast(e.message || 'Could not log planting — try again');
@@ -2053,6 +2202,7 @@ async function loadFeed() {
         <div class="comment-thread" id="thread-${esc(row.id)}" data-plant="${esc(row.id)}" data-owner="${esc(row.user_id)}"></div>
       </div>`;
     }).join('');
+    loadNotifBadge(); // badge refresh rides every feed load (decision 1)
   } catch (e) {
     showToast("Couldn't load nearby plantings");
   }
@@ -2420,6 +2570,163 @@ async function unblockPlanter(id) {
   }
 }
 
+/* ── S4d NOTIFICATIONS (the bell) ── */
+let unreadCount = 0;
+
+function setNotifBadge(n) {
+  unreadCount = n;
+  const b = document.getElementById('notif-badge');
+  if (!b) return;
+  if (n > 0) {
+    b.textContent = n > 99 ? '99+' : String(n);
+    b.classList.add('show');
+  } else {
+    b.textContent = '';
+    b.classList.remove('show');
+  }
+}
+
+// No realtime — badge fetched on load and after user actions (decision 1)
+async function loadNotifBadge() {
+  if (!sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { setNotifBadge(0); return; }
+    const { count, error } = await sb.from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', session.user.id).eq('read', false);
+    if (error) throw error;
+    setNotifBadge(count || 0);
+  } catch (e) { /* badge is best-effort */ }
+}
+
+function notifText(n, nameById, plantById) {
+  const who = esc(nameById[n.actor_id] || 'Planter');
+  const plant = n.plant_id ? esc(plantById[n.plant_id] || 'planting') : '';
+  if (n.type === 'inspire') return who + ' inspired your ' + plant;
+  if (n.type === 'comment') return who + ' commented on your ' + plant;
+  return who + ' followed you';
+}
+
+async function openNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  const backdrop = document.getElementById('notif-backdrop');
+  const list = document.getElementById('notif-list');
+  panel.classList.add('open');
+  backdrop.classList.add('open');
+  const emptyHtml = '<p class="notif-empty">Quiet for now. Plant something worth talking about.</p>';
+  if (!sb) { list.innerHTML = emptyHtml; return; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { list.innerHTML = emptyHtml; return; }
+    const me = session.user.id;
+    const { data: notifs, error } = await sb.from('notifications')
+      .select('id,actor_id,type,plant_id,read,created_at')
+      .eq('user_id', me)
+      .order('created_at', { ascending: false }).limit(50);
+    if (error) throw error;
+    const visible = (notifs || []).filter(n => !isBlocked(n.actor_id));
+    if (!visible.length) {
+      list.innerHTML = emptyHtml;
+    } else {
+      const actorIds = [...new Set(visible.map(n => n.actor_id))];
+      const { data: profs } = await sb.from('profiles')
+        .select('id, display_name').in('id', actorIds);
+      const nameById = {};
+      (profs || []).forEach(p => { nameById[p.id] = p.display_name; });
+      const plantIds = [...new Set(visible.filter(n => n.plant_id).map(n => n.plant_id))];
+      const plantById = {};
+      if (plantIds.length) {
+        const { data: pls } = await sb.from('plants')
+          .select('id, plant_name').in('id', plantIds);
+        (pls || []).forEach(p => { plantById[p.id] = p.plant_name; });
+      }
+      list.innerHTML = visible.map(n =>
+        `<div class="notif-row${n.read ? '' : ' unread'}" onclick="notifRowTap()">
+          <span class="notif-text">${notifText(n, nameById, plantById)}</span>
+          <span class="notif-time">${timeAgo(n.created_at)}</span>
+        </div>`
+      ).join('');
+    }
+    // Panel open = seen: mark all unread read, zero the badge
+    await sb.from('notifications').update({ read: true })
+      .eq('user_id', me).eq('read', false);
+    setNotifBadge(0);
+  } catch (e) {
+    list.innerHTML = '<p class="notif-empty">Could not load notifications.</p>';
+  }
+}
+
+function closeNotifPanel() {
+  document.getElementById('notif-panel').classList.remove('open');
+  document.getElementById('notif-backdrop').classList.remove('open');
+}
+
+function notifRowTap() {
+  // Deep-linking is S4e's job (decision 2) — the feed is the destination
+  closeNotifPanel();
+  switchTab('feed');
+}
+
+/* ── S4d FIRST-LOG SETUP SHEET ── */
+let setupColor = null;
+
+// ja_profile_prompted is a SACRED key — one-shot, set at show so the
+// sheet can never fire twice; never shown on app open (decision 5)
+function maybeShowSetupSheet() {
+  try {
+    if (localStorage.getItem('ja_profile_prompted') === '1') return;
+    localStorage.setItem('ja_profile_prompted', '1');
+    if (localStorage.getItem('ja_profile_prompted') !== '1') return; // write failed
+  } catch (e) { return; }
+  openSetupSheet();
+}
+
+function openSetupSheet() {
+  const sheet = document.getElementById('action-sheet');
+  const current = myProfile ? myProfile.display_name : 'Planter';
+  setupColor = myProfile ? myProfile.avatar_color : null;
+  const colorRow = AVATAR_PALETTE.map(c =>
+    `<button class="setup-color${setupColor === c ? ' selected' : ''}" data-color="${c}"
+      style="background:${c}" onclick="pickSetupColor(this)" aria-label="Avatar color"></button>`
+  ).join('');
+  sheet.innerHTML = `
+    <div class="sheet-title"><strong>You're on the map.</strong><br>What should neighbors call you?</div>
+    <input class="form-input" id="setup-name" type="text" maxlength="40" value="${esc(current)}" autocomplete="off">
+    <div class="setup-colors">${colorRow}</div>
+    <button class="sheet-btn" style="background:var(--green-700);border-color:var(--green-700);color:white" onclick="saveSetupSheet()">Save</button>
+    <button class="sheet-btn cancel" onclick="closeSheet()">Skip</button>`;
+  document.getElementById('action-sheet-backdrop').classList.add('open');
+  sheet.classList.add('open');
+}
+
+function pickSetupColor(btn) {
+  setupColor = btn.dataset.color;
+  document.querySelectorAll('.setup-color').forEach(b => b.classList.toggle('selected', b === btn));
+}
+
+async function saveSetupSheet() {
+  const name = (document.getElementById('setup-name').value || '').trim();
+  closeSheet();
+  if (!myProfile) return; // profile still in flight — defaults stand
+  const updates = {};
+  if (name && name !== myProfile.display_name) updates.display_name = name;
+  if (setupColor && setupColor !== myProfile.avatar_color) updates.avatar_color = setupColor;
+  if (!Object.keys(updates).length) return;
+  const prev = { display_name: myProfile.display_name, avatar_color: myProfile.avatar_color };
+  Object.assign(myProfile, updates); // optimistic — existing profile update path
+  renderProfileHero();
+  try {
+    const { error } = await sb.from('profiles').update(updates).eq('id', myProfile.id);
+    if (error) throw error;
+    loadFeed(); // cards pick up the new name
+  } catch (e) {
+    Object.assign(myProfile, prev); // roll back
+    renderProfileHero();
+    showToast(e.message || 'Could not save');
+  }
+}
+
 /* ── S4a IDENTITY ── */
 // Brand palette — keep in sync with handle_new_user() in schema.sql
 const AVATAR_PALETTE = ['#4A7C59','#D97B1A','#6D28D9','#335736','#B8620A'];
@@ -2449,7 +2756,7 @@ async function loadOwnProfile() {
   if (!sb) return;
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { renderProfileHero(); return; }
+    if (!session) { renderProfileHero(); renderEmailRow(null); return; }
     const { data, error } = await sb.from('profiles')
       .select('id, display_name, avatar_color').eq('id', session.user.id).single();
     if (error) throw error;
@@ -2513,11 +2820,81 @@ async function cycleAvatar() {
 
 /* ── S4a EMAIL UPGRADE ── */
 function renderEmailRow(user) {
-  if (!(user && user.email && user.is_anonymous === false)) return;
-  const row = document.getElementById('email-upgrade-row');
-  document.getElementById('email-upgrade-label').textContent = 'Garden protected';
-  document.getElementById('email-upgrade-value').textContent = user.email;
-  row.dataset.protected = '1';
+  const keepRow = document.getElementById('email-upgrade-row');
+  const signInRow = document.getElementById('sign-in-row');
+  const signOutRow = document.getElementById('sign-out-row');
+  if (!user) {
+    // Signed-out browse mode: Sign in row only
+    keepRow.style.display = 'none';
+    document.getElementById('email-upgrade-edit').classList.remove('visible');
+    signInRow.style.display = '';
+    signOutRow.style.display = 'none';
+    return;
+  }
+  signInRow.style.display = 'none';
+  keepRow.style.display = '';
+  if (user.is_anonymous === false) {
+    const provider = (user.app_metadata && user.app_metadata.provider) || 'email';
+    document.getElementById('email-upgrade-label').textContent = 'Garden protected';
+    document.getElementById('email-upgrade-value').textContent =
+      provider === 'google' ? 'Google' : (user.email || 'Linked');
+    keepRow.dataset.protected = '1';
+    document.getElementById('email-upgrade-edit').classList.remove('visible');
+    // Sign out ONLY for non-anonymous sessions (tripwire 12)
+    signOutRow.style.display = '';
+  } else {
+    signOutRow.style.display = 'none';
+  }
+}
+
+/* ── S4d GOOGLE SIGN-IN + GUARDED SIGN OUT ── */
+async function googleSignIn() {
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const opts = { redirectTo: 'https://johnny-appleseed.onrender.com' };
+    let error;
+    if (session && session.user.is_anonymous) {
+      // Link Google to the anonymous identity — same auth.uid(), plants kept
+      ({ error } = await sb.auth.linkIdentity({ provider: 'google', options: opts }));
+    } else {
+      ({ error } = await sb.auth.signInWithOAuth({ provider: 'google', options: opts }));
+    }
+    if (error) throw error;
+    // Browser redirects to Google from here
+  } catch (e) {
+    showToast(e.message || 'Could not start Google sign-in');
+  }
+}
+
+function confirmSignOut() {
+  openSheet(
+    [{ label: 'Sign out', danger: true, handler: doSignOut }],
+    'Sign out of Johnny Appleseed?'
+  );
+}
+
+async function doSignOut() {
+  if (!sb) return;
+  try {
+    // Tripwire 12: NEVER sign out an anonymous session — it orphans the garden
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session || session.user.is_anonymous !== false) return;
+    const { error } = await sb.auth.signOut();
+    if (error) throw error;
+    myProfile = null;
+    myUserId = null;
+    followedIds = new Set();
+    blockedIds = new Set();
+    renderProfileHero();
+    renderEmailRow(null);
+    setNotifBadge(0);
+    loadFeed();
+    if (map) renderMarkers(currentFilter);
+    showToast('Signed out');
+  } catch (e) {
+    showToast(e.message || 'Could not sign out');
+  }
 }
 
 function startEmailUpgrade() {
@@ -2576,6 +2953,17 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFeed();
   loadOwnProfile();
 });
+
+// OAuth redirect return: supabase-js picks the session up automatically;
+// re-run the profile + badge loads so the UI reflects the linked account
+if (sb) {
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_IN') {
+      loadOwnProfile();
+      loadNotifBadge();
+    }
+  });
+}
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
