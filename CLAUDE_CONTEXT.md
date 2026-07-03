@@ -10,7 +10,7 @@ Written for the agent, not for humans.
 - **Johnny Appleseed** v0.3.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
-- Deploy: GitHub → Render static site, auto-deploy on push to `main`
+- Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
 - Brand: Fraunces (serif, headlines) + DM Sans (body). Deep forest green + harvest gold + violet (pollinators). **No emojis anywhere — inline stroke SVG icons only** (stroke-width 1.6–1.8, currentColor).
 
 ## Stack
