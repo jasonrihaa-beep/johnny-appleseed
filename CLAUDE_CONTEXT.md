@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.5.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.6.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -67,6 +67,23 @@ Written for the agent, not for humans.
    notifications (trigger-written, owner-read). Tables idle until
    S4b–S4d wire them.
 
+## S4b design decisions (final — from S4B_SPEC.md)
+
+1. **Fake people removed; example plants labeled.** The three hardcoded
+   feed cards (Maria R., David K., Tasha W.) are gone — invented humans
+   violate honest-states. PIN_SPOTS pins stay as seed content with
+   popups prefixed "Example — " so no pin pretends to be a neighbor.
+2. **inspires/follows have NO column defaults** (unlike plants.user_id) —
+   see tripwire 11.
+3. **Counts are client-aggregated.** One in-list inspires query per feed
+   load; PostgREST aggregates are the upgrade path, not now.
+4. **Follows have a consumption surface from day one** — feed pills
+   Nearby (default) | Following. Following with zero follows shows a
+   dedicated empty state.
+5. **Notifications accumulate silently until S4d** — expected, documented.
+6. **Blocks table exists but has no client logic until S4c.**
+7. Self-inspire allowed; DB trigger suppresses self-notification.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -89,7 +106,10 @@ Written for the agent, not for humans.
 | Access selector | `selectAccess`, `.access-option` | plant form |
 | Supabase wiring | `ensureAuth`, `submitPlant`, `loadDbPins`, `loadFeed`, `esc(` | after selectTag |
 | Live feed container | `id="feed-live"` | feed view |
-| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after loadFeed |
+| S4b feed pills | `id="feed-pills"`, `setFeedMode` | feed view, below location bar |
+| S4b inspires | `toggleInspireDb`, `setInspireBtn` | after loadFeed |
+| S4b follows | `toggleFollowDb`, `setFollowBtns`, `.follow-btn` | after inspires |
+| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after follows |
 | S4a email upgrade | `startEmailUpgrade`, `renderEmailRow`, `bumpLogCount` | after identity |
 | Profile hero (dynamic) | `id="profile-avatar"`, `id="profile-name-display"` | profile view |
 | Email upgrade row | `id="email-upgrade-row"` | settings, above AI key |
@@ -163,6 +183,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     scopes with `:not(.access-option)`; `selectAccess` scopes to
     `.access-option`. Remove either scope and picking a Type silently
     deselects the access level (or vice versa).
+11. **inspires/follows have NO column defaults.** Unlike plants.user_id
+    (DB default auth.uid()), the client MUST send ids explicitly on
+    insert; RLS `with check` enforces they match the session. Copying
+    the plants insert pattern (omitting user_id) fails with a
+    not-null violation.
 
 ## Validate-after-edit checklist — skip none
 
@@ -189,8 +214,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   DB-side. Remaining from S2 design: magic-link upgrade nudge, photo
   upload (S2.5), profanity filter.
 - ✅ S4a identity: profile name edit, avatar color cycle, keep-your-garden
-  email upgrade + 3rd-log nudge. S4 social schema applied (idle).
-- ⏳ S4b follows + real inspires · ⏳ S4c comments + reports/blocks ·
-  ⏳ S4d notifications panel
+  email upgrade + 3rd-log nudge. S4 social schema applied.
+- ✅ S4b engagement: real inspires (client-aggregated counts), follows +
+  Nearby/Following feed pills, fake feed cards removed, example pins
+  labeled. Notifications accumulate silently until S4d.
+- ⏳ S4c comments + reports/blocks · ⏳ S4d notifications panel
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

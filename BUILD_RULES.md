@@ -37,12 +37,18 @@ Ten rules. Committed to the repo. Every Claude Code session follows all ten.
 
 11. **Task 4 self-verify — post-deploy verification on every ship.**
     After pushing, poll the live URL until the new footer version
-    appears (up to 3 min). Then verify and report a pass/fail table:
+    appears (up to 3 min). Then verify and report a pass/fail table
+    with ALL FOUR standard probes — enumerated so none can silently
+    drop:
     (1) live index.html carries the new version and this build's UI
-    markers; (2) live sw.js cache name matches the fan-out; (3) a
-    read-only Supabase REST probe (URL + anon key read from the live
-    page's config constants) returns 200 JSON. Never mutate data
-    during verification.
+        markers;
+    (2) live sw.js cache name matches the fan-out;
+    (3) read-only Supabase REST probe on a table relevant to this
+        build (URL + anon key read from the live page's config
+        constants) returns 200 JSON;
+    (4) plants privacy spot-check — sample lat/lng values show ≤ 3
+        decimal places.
+    Never mutate data during verification.
 
 ---
 

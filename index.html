@@ -298,6 +298,35 @@ body.tab-map #map-view {
 /* ── FEED VIEW ── */
 #feed-view { padding: 0 0 16px; }
 
+#feed-pills {
+  display: flex;
+  gap: 6px;
+  padding: 12px 20px 0;
+}
+
+/* Follow — .filter-pill styling at reduced size */
+.follow-btn {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--stone-300);
+  background: var(--stone-100);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--stone-700);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+  margin-right: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.follow-btn.following {
+  background: var(--green-700);
+  border-color: var(--green-700);
+  color: var(--stone-100);
+}
+
 .feed-section-label {
   padding: 20px 20px 8px;
   font-size: 11px;
@@ -1068,6 +1097,11 @@ body.tab-map #map-view {
         <span id="location-text">Showing plants near <strong>Cibolo, TX</strong></span>
       </div>
 
+      <div id="feed-pills">
+        <button class="filter-pill active" onclick="setFeedMode('nearby', this)">Nearby</button>
+        <button class="filter-pill" onclick="setFeedMode('following', this)">Following</button>
+      </div>
+
       <div class="ai-banner">
         <svg class="ai-banner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
         <div class="ai-banner-text">
@@ -1079,89 +1113,6 @@ body.tab-map #map-view {
       <div class="feed-section-label">Recent plantings nearby</div>
 
       <div id="feed-live"></div>
-
-      <div class="post-card">
-        <div class="post-header">
-          <div class="avatar gold">MR</div>
-          <div class="post-meta">
-            <div class="post-author">Maria R.</div>
-            <div class="post-location">0.4 mi away &middot; Schertz, TX</div>
-          </div>
-          <span class="post-time">2h</span>
-        </div>
-        <p class="post-body">Just put in a Meyer lemon along the south fence. Soil was clay-heavy so I amended with compost first. Fingers crossed.</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <div class="post-plant-tag edible">
-            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 4v8m-4-4h8"/></svg>
-            Meyer Lemon
-          </div>
-          <div class="post-plant-tag">
-            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
-            Zone 8b compatible
-          </div>
-        </div>
-        <div class="post-footer">
-          <button class="inspire-btn" onclick="toggleInspire(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
-            This inspires me
-          </button>
-          <span class="score-badge">Plant score <span>91</span></span>
-        </div>
-      </div>
-
-      <div class="post-card">
-        <div class="post-header">
-          <div class="avatar">DK</div>
-          <div class="post-meta">
-            <div class="post-author">David K.</div>
-            <div class="post-location">1.1 mi away &middot; Universal City, TX</div>
-          </div>
-          <span class="post-time">5h</span>
-        </div>
-        <p class="post-body">Planted three native Beautyberry shrubs along the back fence for the birds. Soil temp was perfect, 68 degrees.</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <div class="post-plant-tag">
-            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
-            American Beautyberry
-          </div>
-          <div class="post-plant-tag">
-            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
-            Native &middot; TX
-          </div>
-        </div>
-        <div class="post-footer">
-          <button class="inspire-btn inspired" onclick="toggleInspire(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
-            Inspired
-          </button>
-          <span class="score-badge">Plant score <span>97</span></span>
-        </div>
-      </div>
-
-      <div class="post-card">
-        <div class="post-header">
-          <div class="avatar sage">TW</div>
-          <div class="post-meta">
-            <div class="post-author">Tasha W.</div>
-            <div class="post-location">2.3 mi away &middot; Cibolo, TX</div>
-          </div>
-          <span class="post-time">1d</span>
-        </div>
-        <p class="post-body">Started a blackberry patch in the side yard. It's going to take over everything but honestly that's the point. Free fruit in two years.</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <div class="post-plant-tag edible">
-            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 4v8m-4-4h8"/></svg>
-            Blackberry
-          </div>
-        </div>
-        <div class="post-footer">
-          <button class="inspire-btn" onclick="toggleInspire(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
-            This inspires me
-          </button>
-          <span class="score-badge">Plant score <span>88</span></span>
-        </div>
-      </div>
 
       <div class="feed-empty" id="feed-empty">
         <p class="feed-empty-title">No plantings nearby yet</p>
@@ -1320,7 +1271,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.5.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.6.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1596,7 +1547,7 @@ function renderMarkers(filter) {
     const sc = plantScore(p);
     const m = L.marker([spot.lat, spot.lng], { icon: pinIcon(pinType(p.tags)) })
       .addTo(map)
-      .bindPopup(`<strong>${p.n}</strong><span class="pin-meta">${p.note} &middot; </span><span class="pin-score">Score ${sc.score}</span>`);
+      .bindPopup(`<strong>${p.n}</strong><span class="pin-meta">Example &mdash; ${p.note} &middot; </span><span class="pin-score">Score ${sc.score}</span>`);
     markers.push(m);
   });
   // Community pins from Supabase — user-generated text must be escaped
@@ -1837,23 +1788,75 @@ function timeAgo(ts) {
   return Math.floor(s/86400) + 'd';
 }
 
+/* ── S4b ENGAGEMENT STATE ── */
+let feedMode = 'nearby';      // 'nearby' | 'following'
+let followedIds = new Set();  // authors the session user follows
+let myUserId = null;          // session user id, null when browsing anonymously
+
+function setFeedMode(mode, el) {
+  feedMode = mode;
+  document.querySelectorAll('#feed-pills .filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  loadFeed();
+}
+
 async function loadFeed() {
   if (!sb) return;
   try {
-    // Bounding box ±0.75° ≈ 50 mi around region center; distance sort client-side
-    const { data: plants, error } = await sb.from('plants').select('*')
-      .gte('lat', REGION_CENTER.lat - 0.75).lte('lat', REGION_CENTER.lat + 0.75)
-      .gte('lng', REGION_CENTER.lng - 0.75).lte('lng', REGION_CENTER.lng + 0.75)
+    const box = document.getElementById('feed-live');
+    const emptyEl = document.getElementById('feed-empty');
+    // Session read only — browsing never creates one
+    const { data: { session } } = await sb.auth.getSession();
+    myUserId = session ? session.user.id : null;
+    // Follows once per load
+    followedIds = new Set();
+    if (myUserId) {
+      const { data: fl } = await sb.from('follows')
+        .select('followed_id').eq('follower_id', myUserId);
+      (fl || []).forEach(r => followedIds.add(r.followed_id));
+    }
+    let query = sb.from('plants').select('*');
+    if (feedMode === 'following') {
+      emptyEl.classList.remove('visible');
+      if (!followedIds.size) {
+        box.innerHTML = `<div class="feed-empty visible">
+          <p class="feed-empty-title">No gardens yet</p>
+          <p class="feed-empty-sub">Follow a planter and their gardens show up here.</p>
+        </div>`;
+        return;
+      }
+      query = query.in('user_id', [...followedIds]);
+    } else {
+      // Bounding box ±0.75° ≈ 50 mi around region center; distance sort client-side
+      query = query
+        .gte('lat', REGION_CENTER.lat - 0.75).lte('lat', REGION_CENTER.lat + 0.75)
+        .gte('lng', REGION_CENTER.lng - 0.75).lte('lng', REGION_CENTER.lng + 0.75);
+    }
+    const { data: plants, error } = await query
       .order('planted_at', { ascending: false }).limit(200);
     if (error) throw error;
-    const box = document.getElementById('feed-live');
-    if (!plants || !plants.length) { box.innerHTML = ''; return; }
+    if (!plants || !plants.length) {
+      box.innerHTML = '';
+      emptyEl.classList.toggle('visible', feedMode === 'nearby');
+      return;
+    }
+    emptyEl.classList.remove('visible');
     // Author names via a second query — no joins needed at MVP scale
     const ids = [...new Set(plants.map(r => r.user_id))];
     const { data: profs } = await sb.from('profiles')
       .select('id, display_name, avatar_color').in('id', ids);
     const profById = {};
     (profs || []).forEach(pr => { profById[pr.id] = pr; });
+    // Inspires for visible plants — client-aggregated (decision 3)
+    const plantIds = plants.map(r => r.id);
+    const { data: insp } = await sb.from('inspires')
+      .select('plant_id,user_id').in('plant_id', plantIds);
+    const inspCount = {};
+    const inspMine = new Set();
+    (insp || []).forEach(r => {
+      inspCount[r.plant_id] = (inspCount[r.plant_id] || 0) + 1;
+      if (myUserId && r.user_id === myUserId) inspMine.add(r.plant_id);
+    });
     plants.sort((a, b) =>
       milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, a.lat, a.lng) -
       milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, b.lat, b.lng));
@@ -1865,14 +1868,23 @@ async function loadFeed() {
       const dist = milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, row.lat, row.lng);
       const tagCls = (row.tags || []).includes('edible') ? ' edible'
         : (row.tags || []).includes('pollinator') ? ' pollinator' : '';
+      const mine = inspMine.has(row.id);
+      const count = inspCount[row.id] || 0;
+      const isOwn = myUserId && row.user_id === myUserId;
+      const followBtn = isOwn ? '' :
+        `<button class="follow-btn${followedIds.has(row.user_id) ? ' following' : ''}"
+          data-author="${esc(row.user_id)}"
+          data-following="${followedIds.has(row.user_id)}"
+          onclick="toggleFollowDb(this)">${followedIds.has(row.user_id) ? 'Following' : 'Follow'}</button>`;
       return `<div class="post-card">
         <div class="post-header">
           <div class="avatar" style="background:${color};color:#fff">${initials}</div>
           <div class="post-meta">
             <div class="post-author">${author}</div>
             <div class="post-location">${dist.toFixed(1)} mi away${row.neighborhood ? ' &middot; ' + esc(row.neighborhood) : ''}</div>
-          </div>
-          <span class="post-time">${timeAgo(row.planted_at)}</span>
+          </div>` +
+          followBtn +
+          `<span class="post-time">${timeAgo(row.planted_at)}</span>
         </div>` +
         (row.note ? `<p class="post-body">${esc(row.note)}</p>` : '') +
         `<div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -1882,9 +1894,11 @@ async function loadFeed() {
           </div>
         </div>
         <div class="post-footer">
-          <button class="inspire-btn" onclick="toggleInspire(this)">
+          <button class="inspire-btn${mine ? ' inspired' : ''}"
+            data-plant="${esc(row.id)}" data-inspired="${mine}" data-count="${count}"
+            onclick="toggleInspireDb(this)">
             <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
-            This inspires me
+            ${mine ? 'Inspired' : 'This inspires me'}${count > 0 ? ' &middot; ' + count : ''}
           </button>` +
           (row.score != null ? `<span class="score-badge">Plant score <span>${row.score}</span></span>` : '') +
         `</div>
@@ -1892,6 +1906,79 @@ async function loadFeed() {
     }).join('');
   } catch (e) {
     showToast("Couldn't load nearby plantings");
+  }
+}
+
+/* ── S4b REAL INSPIRES ── */
+function setInspireBtn(btn, inspired, count) {
+  btn.dataset.inspired = String(inspired);
+  btn.dataset.count = String(count);
+  btn.classList.toggle('inspired', inspired);
+  const iconPath = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
+  btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${iconPath}</svg>${inspired ? ' Inspired' : ' This inspires me'}${count > 0 ? ' &middot; ' + count : ''}`;
+}
+
+async function toggleInspireDb(btn) {
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  const plantId = btn.dataset.plant;
+  const was = btn.dataset.inspired === 'true';
+  const wasCount = parseInt(btn.dataset.count || '0', 10) || 0;
+  setInspireBtn(btn, !was, was ? Math.max(0, wasCount - 1) : wasCount + 1); // optimistic
+  try {
+    // Inspiring is a valid first action — anon session created if needed
+    const session = await ensureAuth();
+    const me = session.user.id;
+    myUserId = me;
+    if (!was) {
+      // No column defaults on inspires — send both ids explicitly (tripwire 11)
+      const { error } = await sb.from('inspires')
+        .insert({ plant_id: plantId, user_id: me });
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('inspires')
+        .delete().eq('plant_id', plantId).eq('user_id', me);
+      if (error) throw error;
+    }
+  } catch (e) {
+    setInspireBtn(btn, was, wasCount); // revert
+    showToast(e.message || 'Could not save');
+  }
+}
+
+/* ── S4b FOLLOWS ── */
+function setFollowBtns(author, following) {
+  document.querySelectorAll(`.follow-btn[data-author="${author}"]`).forEach(b => {
+    b.dataset.following = String(following);
+    b.classList.toggle('following', following);
+    b.textContent = following ? 'Following' : 'Follow';
+  });
+}
+
+async function toggleFollowDb(btn) {
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  const author = btn.dataset.author;
+  const was = btn.dataset.following === 'true';
+  setFollowBtns(author, !was); // optimistic, all cards by this author
+  try {
+    const session = await ensureAuth();
+    const me = session.user.id;
+    myUserId = me;
+    if (author === me) { setFollowBtns(author, was); return; } // own card guard
+    if (!was) {
+      // No column defaults on follows — send both ids explicitly (tripwire 11)
+      const { error } = await sb.from('follows')
+        .insert({ follower_id: me, followed_id: author });
+      if (error) throw error;
+      followedIds.add(author);
+    } else {
+      const { error } = await sb.from('follows')
+        .delete().eq('follower_id', me).eq('followed_id', author);
+      if (error) throw error;
+      followedIds.delete(author);
+    }
+  } catch (e) {
+    setFollowBtns(author, was); // revert
+    showToast(e.message || 'Could not save');
   }
 }
 
