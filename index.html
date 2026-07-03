@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
   --green-950: #0D1A0F;
@@ -602,6 +603,18 @@ body.tab-map #map-view {
   border-color: var(--violet-400);
   color: var(--violet-700);
 }
+.tag-option.access-option.selected {
+  background: var(--green-50);
+  border-color: var(--green-400);
+  color: var(--green-700);
+}
+
+.form-caption {
+  font-size: 12px;
+  color: var(--stone-500);
+  line-height: 1.5;
+  margin-top: 8px;
+}
 
 /* Plant Score Preview */
 #score-preview {
@@ -1006,6 +1019,7 @@ body.tab-map #map-view {
         <button class="filter-pill" onclick="setFilter(this,'wildlife')">Wildlife</button>
         <button class="filter-pill" onclick="setFilter(this,'pollinator')">Pollinators</button>
         <button class="filter-pill" onclick="setFilter(this,'near')">Near me</button>
+        <button class="filter-pill" onclick="setFilter(this,'open')">Open harvest</button>
       </div>
       <div id="leaflet-map"></div>
       <div id="map-fallback">
@@ -1033,6 +1047,8 @@ body.tab-map #map-view {
       </div>
 
       <div class="feed-section-label">Recent plantings nearby</div>
+
+      <div id="feed-live"></div>
 
       <div class="post-card">
         <div class="post-header">
@@ -1140,7 +1156,7 @@ body.tab-map #map-view {
 
       <div class="form-group">
         <label class="form-label" for="plant-location">Location</label>
-        <input class="form-input" id="plant-location" type="text" placeholder="Tap to use current location" readonly onclick="showToast('Location access coming in next build')">
+        <input class="form-input" id="plant-location" type="text" placeholder="Captured automatically when you log" readonly onclick="showToast('Location is captured when you log — GPS, or map center as fallback')">
       </div>
 
       <div class="form-group">
@@ -1151,6 +1167,16 @@ body.tab-map #map-view {
           <button class="tag-option pollinator" onclick="selectTag(this,'pollinator')">Pollinators</button>
           <button class="tag-option both" onclick="selectTag(this,'both')">All of the above</button>
         </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Who can reach it?</label>
+        <div class="tag-row">
+          <button class="tag-option access-option" onclick="selectAccess(this,'public')">Open spot</button>
+          <button class="tag-option access-option" onclick="selectAccess(this,'ask')">Ask first</button>
+          <button class="tag-option access-option selected" onclick="selectAccess(this,'private')">My yard</button>
+        </div>
+        <p class="form-caption">Open spots mean parks, parkways, and community gardens &mdash; where planting is permitted.</p>
       </div>
 
       <div class="form-group">
@@ -1246,7 +1272,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.3.1 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.4.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1281,6 +1307,22 @@ const VIEWS = ['map','feed','plant','profile'];
 let activeTab = 'map';
 let toastTimer = null;
 
+/* ── SUPABASE ──
+   Anon key is PUBLIC by design (static PWA) — RLS is the entire
+   security layer. Never add any other key here. */
+const SUPABASE_URL = 'https://uavtaznzdpmfvkdpqyrv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdnRhem56ZHBtZnZrZHBxeXJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMzg3MzMsImV4cCI6MjA5ODYxNDczM30.TVyf7xuAAPk2GPtRJwU_sAhU0OBxoUHlODftVHe8ElA';
+// Guarded init: if the CDN failed, sb is null and every feature
+// degrades to a toast — browsing must never break.
+const sb = (typeof supabase !== 'undefined')
+  ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+let selectedType = 'wildlife';   // matches default-selected Type button
+let selectedAccess = 'private';  // safe default — see schema.sql
+let dbPlants = [];               // community plants fetched from Supabase
+let currentFilter = 'all';
+
 /* ── MAP ── */
 let map = null;
 let markers = [];
@@ -1292,6 +1334,7 @@ const PIN_COLORS = { edible: '#D97B1A', wildlife: '#335736', pollinator: '#6D28D
    TexasInvasives.org, Xerces Society Southern Plains, NRCS.
    Live weather + zone APIs replace static month tables in Session 3. */
 const REGION = { name: "Cibolo, TX", zone: "8b/9a" };
+const REGION_CENTER = { lat: 29.5616, lng: -98.2269 }; // feed bounding-box anchor + GPS fallback
 const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 // tags: edible | wildlife | pollinator. m: planting months (1-12).
@@ -1454,14 +1497,17 @@ function pinType(tags) {
   return tags[0];
 }
 
-function pinIcon(type) {
+function pinIcon(type, openAccess) {
   const color = PIN_COLORS[type] || PIN_COLORS.both;
+  // Open-harvest (access='public') pins get a gold ring
+  const ring = openAccess ? '#F4A127' : 'white';
+  const ringW = openAccess ? '2' : '1.5';
   const inner = type === 'wildlife' || type === 'pollinator'
     ? '<path d="M14 8v8M10 12h8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>'
     : '<circle cx="14" cy="12" r="4" fill="white" opacity="0.9"/>';
   return L.divIcon({
     className: 'aps-pin',
-    html: `<svg viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2C8.48 2 4 6.48 4 12c0 7.5 10 20 10 20s10-12.5 10-20c0-5.52-4.48-10-10-10z" fill="${color}" stroke="white" stroke-width="1.5"/>${inner}</svg>`,
+    html: `<svg viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2C8.48 2 4 6.48 4 12c0 7.5 10 20 10 20s10-12.5 10-20c0-5.52-4.48-10-10-10z" fill="${color}" stroke="${ring}" stroke-width="${ringW}"/>${inner}</svg>`,
     iconSize: [28, 34],
     iconAnchor: [14, 34],
     popupAnchor: [0, -30]
@@ -1483,14 +1529,17 @@ function initMap() {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     renderMarkers('all');
+    loadDbPins();
   } catch (e) {
     document.getElementById('map-fallback').classList.add('visible');
   }
 }
 
 function renderMarkers(filter) {
+  currentFilter = filter;
   markers.forEach(m => map.removeLayer(m));
   markers = [];
+  // Demo pins (PIN_SPOTS): no access data, so the 'open' filter hides them
   PIN_SPOTS.forEach(spot => {
     const p = dbFind(spot.db);
     if (!p) return;
@@ -1502,6 +1551,35 @@ function renderMarkers(filter) {
       .bindPopup(`<strong>${p.n}</strong><span class="pin-meta">${p.note} &middot; </span><span class="pin-score">Score ${sc.score}</span>`);
     markers.push(m);
   });
+  // Community pins from Supabase — user-generated text must be escaped
+  dbPlants.forEach(row => {
+    const show = filter === 'all' || filter === 'near' ||
+      (filter === 'open' ? row.access === 'public' : (row.tags || []).includes(filter));
+    if (!show) return;
+    const popup = `<strong>${esc(row.plant_name)}</strong>` +
+      (row.note ? `<span class="pin-meta">${esc(row.note)} &middot; </span>` : '') +
+      (row.score != null ? `<span class="pin-score">Score ${row.score}</span>` : '');
+    const m = L.marker([row.lat, row.lng], { icon: pinIcon(pinType(row.tags), row.access === 'public') })
+      .addTo(map)
+      .bindPopup(popup);
+    markers.push(m);
+  });
+}
+
+async function loadDbPins() {
+  if (!sb || !map) return;
+  try {
+    const b = map.getBounds();
+    const { data, error } = await sb.from('plants').select('*')
+      .gte('lat', b.getSouth()).lte('lat', b.getNorth())
+      .gte('lng', b.getWest()).lte('lng', b.getEast())
+      .order('planted_at', { ascending: false }).limit(200);
+    if (error) throw error;
+    dbPlants = data || [];
+    renderMarkers(currentFilter);
+  } catch (e) {
+    showToast("Couldn't load community plantings");
+  }
 }
 
 function enterApp() {
@@ -1550,8 +1628,16 @@ function toggleInspire(btn) {
 }
 
 function selectTag(el, type) {
-  document.querySelectorAll('.tag-option').forEach(t => t.classList.remove('selected'));
+  // :not(.access-option) — Type and access selectors are independent single-selects
+  document.querySelectorAll('.tag-option:not(.access-option)').forEach(t => t.classList.remove('selected'));
   el.classList.add('selected');
+  selectedType = type;
+}
+
+function selectAccess(el, level) {
+  document.querySelectorAll('.access-option').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAccess = level;
 }
 
 function renderScore(plant) {
@@ -1611,14 +1697,152 @@ function pickPlant(name) {
   if (p) renderScore(p);
 }
 
-function submitPlant() {
+/* ── SUPABASE WIRING (S2) ── */
+
+// Escape user-generated text before it lands in innerHTML anywhere
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+// Anonymous-first: sign in silently on first log. Browsing never needs auth.
+async function ensureAuth() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) return session;
+  const { data, error } = await sb.auth.signInAnonymously();
+  if (error) throw error;
+  return data.session;
+}
+
+// GPS with graceful fallback to map center — never block a log on permission
+function getLogLocation() {
+  return new Promise(resolve => {
+    const fallback = () => {
+      const c = map ? map.getCenter() : REGION_CENTER;
+      showToast('Using map location — GPS unavailable');
+      resolve({ lat: c.lat, lng: c.lng });
+    };
+    if (!navigator.geolocation) { fallback(); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      fallback,
+      { timeout: 8000, maximumAge: 60000 }
+    );
+  });
+}
+
+async function submitPlant() {
   const name = document.getElementById('plant-name').value.trim();
   if (!name) { showToast('Enter a plant name first'); return; }
-  showToast(name + ' logged. Thank you for planting.');
-  document.getElementById('plant-name').value = '';
-  document.getElementById('plant-note').value = '';
-  document.getElementById('score-preview').classList.remove('visible');
-  setTimeout(() => switchTab('feed'), 1200);
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  try {
+    await ensureAuth();
+    const loc = await getLogLocation();
+    // 3 decimals ≈ 110 m; matches the DB trigger so the UI preview is honest
+    const lat = Math.round(loc.lat * 1000) / 1000;
+    const lng = Math.round(loc.lng * 1000) / 1000;
+    const p = dbFind(name);
+    const sc = p ? plantScore(p) : null; // unknown plant = no score, honestly
+    const tags = selectedType === 'both' ? ['edible','wildlife','pollinator'] : [selectedType];
+    const note = document.getElementById('plant-note').value.trim() || null;
+    // user_id comes from the DB default (auth.uid()) — NEVER send it from the client
+    const { error } = await sb.from('plants').insert({
+      plant_name: name,
+      sci: p ? p.sci : null,
+      tags: tags,
+      lat: lat,
+      lng: lng,
+      neighborhood: REGION.name,
+      score: sc ? sc.score : null,
+      note: note,
+      access: selectedAccess
+    });
+    if (error) { showToast(error.message); return; }
+    showToast(name + ' logged. Thank you for planting.');
+    document.getElementById('plant-name').value = '';
+    document.getElementById('plant-note').value = '';
+    document.getElementById('score-preview').classList.remove('visible');
+    loadDbPins();
+    loadFeed();
+    setTimeout(() => switchTab('feed'), 1200);
+  } catch (e) {
+    showToast(e.message || 'Could not log planting — try again');
+  }
+}
+
+function milesBetween(lat1, lng1, lat2, lng2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLng/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function timeAgo(ts) {
+  const s = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (s < 60) return 'now';
+  if (s < 3600) return Math.floor(s/60) + 'm';
+  if (s < 86400) return Math.floor(s/3600) + 'h';
+  return Math.floor(s/86400) + 'd';
+}
+
+async function loadFeed() {
+  if (!sb) return;
+  try {
+    // Bounding box ±0.75° ≈ 50 mi around region center; distance sort client-side
+    const { data: plants, error } = await sb.from('plants').select('*')
+      .gte('lat', REGION_CENTER.lat - 0.75).lte('lat', REGION_CENTER.lat + 0.75)
+      .gte('lng', REGION_CENTER.lng - 0.75).lte('lng', REGION_CENTER.lng + 0.75)
+      .order('planted_at', { ascending: false }).limit(200);
+    if (error) throw error;
+    const box = document.getElementById('feed-live');
+    if (!plants || !plants.length) { box.innerHTML = ''; return; }
+    // Author names via a second query — no joins needed at MVP scale
+    const ids = [...new Set(plants.map(r => r.user_id))];
+    const { data: profs } = await sb.from('profiles')
+      .select('id, display_name, avatar_color').in('id', ids);
+    const profById = {};
+    (profs || []).forEach(pr => { profById[pr.id] = pr; });
+    plants.sort((a, b) =>
+      milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, a.lat, a.lng) -
+      milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, b.lat, b.lng));
+    box.innerHTML = plants.map(row => {
+      const prof = profById[row.user_id];
+      const author = esc(prof && prof.display_name ? prof.display_name : 'Planter');
+      const initials = esc(author.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'P');
+      const color = prof && prof.avatar_color ? esc(prof.avatar_color) : '#4A7C59';
+      const dist = milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, row.lat, row.lng);
+      const tagCls = (row.tags || []).includes('edible') ? ' edible'
+        : (row.tags || []).includes('pollinator') ? ' pollinator' : '';
+      return `<div class="post-card">
+        <div class="post-header">
+          <div class="avatar" style="background:${color};color:#fff">${initials}</div>
+          <div class="post-meta">
+            <div class="post-author">${author}</div>
+            <div class="post-location">${dist.toFixed(1)} mi away${row.neighborhood ? ' &middot; ' + esc(row.neighborhood) : ''}</div>
+          </div>
+          <span class="post-time">${timeAgo(row.planted_at)}</span>
+        </div>` +
+        (row.note ? `<p class="post-body">${esc(row.note)}</p>` : '') +
+        `<div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div class="post-plant-tag${tagCls}">
+            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
+            ${esc(row.plant_name)}
+          </div>
+        </div>
+        <div class="post-footer">
+          <button class="inspire-btn" onclick="toggleInspire(this)">
+            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
+            This inspires me
+          </button>` +
+          (row.score != null ? `<span class="score-badge">Plant score <span>${row.score}</span></span>` : '') +
+        `</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    showToast("Couldn't load nearby plantings");
+  }
 }
 
 function showToast(msg) {
@@ -1634,6 +1858,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('topbar').classList.add('map-mode');
   document.body.classList.add('tab-map');
   initMap();
+  loadFeed();
 });
 
 if ('serviceWorker' in navigator) {
