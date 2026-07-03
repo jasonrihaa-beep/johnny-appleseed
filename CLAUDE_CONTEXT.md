@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.4.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.5.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -46,6 +46,27 @@ Written for the agent, not for humans.
 9. **Deferred, documented:** photo upload (S2.5 bucket), display-name
    profanity filter, PostGIS, magic-link nudge.
 
+## S4a design decisions (final — from S4A_SPEC.md)
+
+1. **display_name is a NAME, not a handle** — no uniqueness, no reservation.
+   Collisions are fine. 40-char cap enforced by DB.
+2. **Avatar = palette color only** (5 brand colors, `AVATAR_PALETTE` —
+   keep in sync with `handle_new_user()` in schema.sql). Image upload
+   waits for the S2.5 storage bucket.
+3. **Email upgrade lives in S4a**: `sb.auth.updateUser({ email })` on an
+   anonymous session sends a verification link; verified = same
+   auth.uid(), account permanent, plants kept. Confirmed state =
+   `user.email` present AND `user.is_anonymous === false` → row shows
+   "Garden protected".
+4. **The nudge NEVER auto-prompts on load** — one toast after the exact
+   3rd successful plant log (`ja_log_count`).
+5. **Profanity filtering still deferred** — reports table (S4c) is the
+   interim backstop.
+6. **S4 social schema applied** (`schema_s4.sql`): follows, inspires,
+   comments (+100/day cap), reports (write-only for clients), blocks,
+   notifications (trigger-written, owner-read). Tables idle until
+   S4b–S4d wire them.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -68,7 +89,11 @@ Written for the agent, not for humans.
 | Access selector | `selectAccess`, `.access-option` | plant form |
 | Supabase wiring | `ensureAuth`, `submitPlant`, `loadDbPins`, `loadFeed`, `esc(` | after selectTag |
 | Live feed container | `id="feed-live"` | feed view |
-| Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` | end of script |
+| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after loadFeed |
+| S4a email upgrade | `startEmailUpgrade`, `renderEmailRow`, `bumpLogCount` | after identity |
+| Profile hero (dynamic) | `id="profile-avatar"`, `id="profile-name-display"` | profile view |
+| Email upgrade row | `id="email-upgrade-row"` | settings, above AI key |
+| Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
 
@@ -104,8 +129,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   clearing them orphans that user's plants permanently. The "Clear my
   data" setting must exclude them or show a permanent-loss confirm for
   anonymous users.
-- App-created keys (none yet): prefix `ja_` (e.g. `ja_profile`,
-  `ja_feed_radius`)
+- **`ja_log_count` is SACRED** (S4a) — successful-plant-log counter; the
+  one-time email nudge fires on exactly 3. Snapshot → mutate → verify
+  read-back lives in `bumpLogCount()`.
+- Future app keys: prefix `ja_` (e.g. `ja_profile`, `ja_feed_radius`)
 - Once created, keys are **sacred — never rename without migration**
 - Snapshot before mutate, verify read-back (MyMeds `ProfileSystem` pattern)
 - Never ship an update that could lose user data
@@ -161,5 +188,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   live feed, access selector, Open harvest filter, RLS + coord truncation
   DB-side. Remaining from S2 design: magic-link upgrade nudge, photo
   upload (S2.5), profanity filter.
+- ✅ S4a identity: profile name edit, avatar color cycle, keep-your-garden
+  email upgrade + 3rd-log nudge. S4 social schema applied (idle).
+- ⏳ S4b follows + real inspires · ⏳ S4c comments + reports/blocks ·
+  ⏳ S4d notifications panel
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
-- ⏳ S4: BYOK Claude layer · ⏳ S5: PWABuilder → Play Store
+- ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

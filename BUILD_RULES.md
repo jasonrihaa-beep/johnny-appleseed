@@ -35,6 +35,15 @@ Ten rules. Committed to the repo. Every Claude Code session follows all ten.
     rename without a migration. Never ship anything that could lose a
     user's data. Snapshot → mutate → verify read-back.
 
+11. **Task 4 self-verify — post-deploy verification on every ship.**
+    After pushing, poll the live URL until the new footer version
+    appears (up to 3 min). Then verify and report a pass/fail table:
+    (1) live index.html carries the new version and this build's UI
+    markers; (2) live sw.js cache name matches the fan-out; (3) a
+    read-only Supabase REST probe (URL + anon key read from the live
+    page's config constants) returns 200 JSON. Never mutate data
+    during verification.
+
 ---
 
 ## Session-end definition of done

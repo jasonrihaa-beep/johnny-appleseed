@@ -736,6 +736,36 @@ body.tab-map #map-view {
 }
 .profile-handle { font-size: 13px; color: var(--stone-500); margin-top: 2px; }
 
+/* S4a inline editors (name + email upgrade) */
+#profile-name-display { cursor: pointer; }
+#profile-avatar { cursor: pointer; }
+#profile-name-edit { display: none; margin: 4px 0 6px; }
+#profile-name-edit.visible { display: block; }
+#email-upgrade-edit {
+  display: none;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stone-300);
+}
+#email-upgrade-edit.visible { display: block; }
+.name-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+.name-edit-btn {
+  padding: 8px 16px;
+  border-radius: 100px;
+  border: 1px solid var(--stone-300);
+  background: white;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--stone-700);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.name-edit-btn.save {
+  background: var(--green-700);
+  border-color: var(--green-700);
+  color: white;
+}
+
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1206,9 +1236,16 @@ body.tab-map #map-view {
     <div id="profile-view" class="view">
 
       <div class="profile-hero">
-        <div class="profile-avatar-lg">J</div>
-        <div>
-          <div class="profile-name">Jason</div>
+        <div class="profile-avatar-lg" id="profile-avatar" role="button" aria-label="Change avatar color" onclick="cycleAvatar()">P</div>
+        <div style="flex:1;min-width:0">
+          <div class="profile-name" id="profile-name-display" role="button" onclick="startNameEdit()">Planter</div>
+          <div id="profile-name-edit">
+            <input class="form-input" id="profile-name-input" type="text" maxlength="40" placeholder="Name your garden" autocomplete="off">
+            <div class="name-edit-actions">
+              <button class="name-edit-btn save" onclick="saveNameEdit()">Save</button>
+              <button class="name-edit-btn" onclick="cancelNameEdit()">Cancel</button>
+            </div>
+          </div>
           <div class="profile-handle">Cibolo, TX &middot; Zone 8b</div>
         </div>
       </div>
@@ -1254,6 +1291,17 @@ body.tab-map #map-view {
 
       <div style="margin-bottom:28px">
         <div class="section-title">Settings</div>
+        <div class="settings-row" id="email-upgrade-row" onclick="startEmailUpgrade()">
+          <span class="settings-row-label" id="email-upgrade-label">Add email to keep your garden</span>
+          <span class="settings-row-value" id="email-upgrade-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+        <div id="email-upgrade-edit">
+          <input class="form-input" id="email-upgrade-input" type="email" placeholder="you@example.com" autocomplete="off">
+          <div class="name-edit-actions">
+            <button class="name-edit-btn save" onclick="submitEmailUpgrade()">Send link</button>
+            <button class="name-edit-btn" onclick="cancelEmailUpgrade()">Cancel</button>
+          </div>
+        </div>
         <div class="settings-row" onclick="showToast('API key settings coming soon')">
           <span class="settings-row-label">AI key (Claude)</span>
           <span class="settings-row-value">Not set <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
@@ -1272,7 +1320,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.4.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.5.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1764,6 +1812,8 @@ async function submitPlant() {
     document.getElementById('score-preview').classList.remove('visible');
     loadDbPins();
     loadFeed();
+    if (!myProfile) loadOwnProfile(); // first log created the anon profile
+    bumpLogCount();
     setTimeout(() => switchTab('feed'), 1200);
   } catch (e) {
     showToast(e.message || 'Could not log planting — try again');
@@ -1845,6 +1895,146 @@ async function loadFeed() {
   }
 }
 
+/* ── S4a IDENTITY ── */
+// Brand palette — keep in sync with handle_new_user() in schema.sql
+const AVATAR_PALETTE = ['#4A7C59','#D97B1A','#6D28D9','#335736','#B8620A'];
+let myProfile = null; // { id, display_name, avatar_color } once a session exists
+
+function initialsFor(name) {
+  return (name || 'P').trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'P';
+}
+
+function renderProfileHero() {
+  const nameEl = document.getElementById('profile-name-display');
+  const avEl = document.getElementById('profile-avatar');
+  if (myProfile) {
+    nameEl.textContent = myProfile.display_name;
+    avEl.textContent = initialsFor(myProfile.display_name);
+    avEl.style.background = myProfile.avatar_color;
+    avEl.style.color = '#fff';
+  } else {
+    nameEl.textContent = 'Planter';
+    avEl.textContent = 'P';
+    avEl.style.background = '';
+    avEl.style.color = '';
+  }
+}
+
+async function loadOwnProfile() {
+  if (!sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { renderProfileHero(); return; }
+    const { data, error } = await sb.from('profiles')
+      .select('id, display_name, avatar_color').eq('id', session.user.id).single();
+    if (error) throw error;
+    myProfile = data;
+    renderProfileHero();
+    renderEmailRow(session.user);
+  } catch (e) {
+    renderProfileHero(); // hero falls back to the honest default state
+  }
+}
+
+function startNameEdit() {
+  if (!myProfile) { showToast('Log your first plant to start your garden'); return; }
+  const input = document.getElementById('profile-name-input');
+  input.value = myProfile.display_name;
+  document.getElementById('profile-name-edit').classList.add('visible');
+  document.getElementById('profile-name-display').style.display = 'none';
+  input.focus();
+}
+
+function cancelNameEdit() {
+  document.getElementById('profile-name-edit').classList.remove('visible');
+  document.getElementById('profile-name-display').style.display = '';
+}
+
+async function saveNameEdit() {
+  const val = document.getElementById('profile-name-input').value.trim();
+  if (!val) { showToast('Name cannot be empty'); return; }
+  const prev = myProfile.display_name;
+  myProfile.display_name = val; // optimistic
+  renderProfileHero();
+  cancelNameEdit();
+  try {
+    const { error } = await sb.from('profiles')
+      .update({ display_name: val }).eq('id', myProfile.id);
+    if (error) throw error;
+  } catch (e) {
+    myProfile.display_name = prev; // roll back
+    renderProfileHero();
+    showToast(e.message || 'Could not save name');
+  }
+}
+
+async function cycleAvatar() {
+  if (!myProfile) { showToast('Log your first plant to start your garden'); return; }
+  const i = AVATAR_PALETTE.indexOf(myProfile.avatar_color);
+  const next = AVATAR_PALETTE[(i + 1) % AVATAR_PALETTE.length];
+  const prev = myProfile.avatar_color;
+  myProfile.avatar_color = next; // optimistic
+  renderProfileHero();
+  try {
+    const { error } = await sb.from('profiles')
+      .update({ avatar_color: next }).eq('id', myProfile.id);
+    if (error) throw error;
+  } catch (e) {
+    myProfile.avatar_color = prev; // roll back
+    renderProfileHero();
+    showToast(e.message || 'Could not save color');
+  }
+}
+
+/* ── S4a EMAIL UPGRADE ── */
+function renderEmailRow(user) {
+  if (!(user && user.email && user.is_anonymous === false)) return;
+  const row = document.getElementById('email-upgrade-row');
+  document.getElementById('email-upgrade-label').textContent = 'Garden protected';
+  document.getElementById('email-upgrade-value').textContent = user.email;
+  row.dataset.protected = '1';
+}
+
+function startEmailUpgrade() {
+  const row = document.getElementById('email-upgrade-row');
+  if (row.dataset.protected === '1') return; // already confirmed — disabled state
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!myProfile) { showToast('Log your first plant to start your garden'); return; }
+  document.getElementById('email-upgrade-edit').classList.add('visible');
+  document.getElementById('email-upgrade-input').focus();
+}
+
+function cancelEmailUpgrade() {
+  document.getElementById('email-upgrade-edit').classList.remove('visible');
+}
+
+async function submitEmailUpgrade() {
+  const email = document.getElementById('email-upgrade-input').value.trim();
+  if (!email) { showToast('Enter an email address'); return; }
+  try {
+    const { error } = await sb.auth.updateUser({ email: email });
+    if (error) throw error;
+    showToast('Check your inbox to confirm.');
+    cancelEmailUpgrade();
+  } catch (e) {
+    showToast(e.message || 'Could not send the link');
+  }
+}
+
+// ja_log_count is a SACRED key — snapshot, mutate, verify read-back
+function bumpLogCount() {
+  try {
+    const prev = parseInt(localStorage.getItem('ja_log_count') || '0', 10) || 0;
+    const count = prev + 1;
+    localStorage.setItem('ja_log_count', String(count));
+    if (localStorage.getItem('ja_log_count') !== String(count)) return; // write failed — skip nudge
+    if (count === 3) {
+      // The one-time nudge: fires only on the exact 3rd log, never on load
+      setTimeout(() => showToast('Add an email in Profile to keep your garden'), 3200);
+    }
+  } catch (e) { /* storage unavailable — nudge is best-effort */ }
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -1859,6 +2049,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.classList.add('tab-map');
   initMap();
   loadFeed();
+  loadOwnProfile();
 });
 
 if ('serviceWorker' in navigator) {
