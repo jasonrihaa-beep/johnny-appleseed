@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1C2B1E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Johnny Appleseed</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root {
+  --green-950: #0D1A0F;
+  --green-900: #1C2B1E;
+  --green-800: #263B28;
+  --green-700: #335736;
+  --green-600: #4A7C59;
+  --green-500: #5E9A6F;
+  --green-400: #7DB891;
+  --green-200: #B8D9C3;
+  --green-100: #D6EBE0;
+  --green-50:  #EDF6F1;
+  --gold-600:  #B8620A;
+  --gold-500:  #D97B1A;
+  --gold-400:  #F4A127;
+  --gold-200:  #FAD08A;
+  --gold-100:  #FEF0CC;
+  --stone-100: #FAFDF7;
+  --stone-200: #F0F4EE;
+  --stone-300: #E2E8DF;
+  --stone-500: #8A9988;
+  --stone-700: #4A5549;
+  --ink:       #1C2B1E;
+  --red-700:   #B91C1C;
+  --red-200:   #FECACA;
+  --red-50:    #FEF2F2;
+  --violet-700: #6D28D9;
+  --violet-400: #A78BFA;
+  --violet-100: #EDE9FE;
+  --violet-50:  #F5F3FF;
+  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans:  'DM Sans', system-ui, sans-serif;
+  --tab-h: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--stone-100);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ── APP SHELL ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--stone-100);
+  position: relative;
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--stone-100);
+  border-bottom: 1px solid var(--stone-300);
+  padding: calc(var(--safe-top) + 12px) 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  transition: opacity 0.2s;
+}
+#topbar.map-mode {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  background: transparent;
+  border-bottom: none;
+  z-index: 50;
+  pointer-events: none;
+}
+#topbar.map-mode #topbar-wordmark,
+#topbar.map-mode #topbar-actions { display: none; }
+
+#topbar-wordmark {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--green-900);
+  letter-spacing: -0.3px;
+  line-height: 1;
+}
+
+#topbar-wordmark span {
+  color: var(--gold-500);
+}
+
+#topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--green-700);
+  transition: background 0.15s;
+}
+.icon-btn:hover { background: var(--stone-200); }
+.icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ── SCROLL CONTENT ── */
+#content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── TABS ── */
+#tab-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  background: var(--stone-100);
+  border-top: 1px solid var(--stone-300);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding-bottom: var(--safe-bottom);
+  min-height: var(--tab-h);
+}
+
+.tab-btn { border: none; border-top: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 4px;
+  color: var(--stone-500);
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tab-btn .tab-label { font-size: 10px; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; }
+.tab-btn.active { color: var(--green-700); border-top-color: var(--gold-400); }
+.tab-btn.active .tab-label { color: var(--green-700); }
+
+/* ── VIEWS ── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ── MAP VIEW ── */
+#map-view {
+  position: relative;
+  height: calc(100dvh - 56px - var(--tab-h) - var(--safe-top) - var(--safe-bottom));
+}
+body.tab-map #map-view {
+  height: calc(100dvh - var(--tab-h) - var(--safe-bottom));
+}
+
+#leaflet-map {
+  width: 100%;
+  height: 100%;
+  background: #E8F0E4;
+  z-index: 1;
+}
+/* Leaflet popup matches design system */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(28,43,30,0.15);
+  font-family: var(--font-sans);
+}
+.leaflet-popup-content { margin: 12px 16px; font-size: 13px; line-height: 1.5; }
+.leaflet-popup-content strong { font-family: var(--font-serif); font-size: 15px; font-weight: 500; color: var(--ink); display: block; margin-bottom: 2px; }
+.leaflet-popup-content .pin-meta { color: var(--stone-500); font-size: 12px; }
+.leaflet-popup-content .pin-score { color: var(--green-600); font-weight: 600; }
+
+#map-fallback {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: #E8F0E4;
+  z-index: 5;
+  text-align: center;
+}
+#map-fallback.visible { display: flex; }
+#map-fallback p {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--green-700);
+  font-style: italic;
+  line-height: 1.7;
+}
+
+/* Custom Leaflet divIcon pin */
+.aps-pin { background: none; border: none; }
+.aps-pin svg {
+  width: 28px;
+  height: 34px;
+  filter: drop-shadow(0 2px 3px rgba(28,43,30,0.25));
+  transition: transform 0.15s;
+  transform-origin: bottom center;
+}
+.aps-pin:hover svg { transform: scale(1.12); }
+
+/* Map filter bar */
+#map-filter {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#map-filter::-webkit-scrollbar { display: none; }
+
+.filter-pill {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 100px;
+  border: 1px solid var(--stone-300);
+  background: var(--stone-100);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--stone-700);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: var(--font-sans);
+}
+.filter-pill.active {
+  background: var(--green-700);
+  border-color: var(--green-700);
+  color: var(--stone-100);
+}
+
+/* Plant here FAB */
+#plant-fab {
+  position: absolute;
+  bottom: 20px;
+  right: 16px;
+  z-index: 10;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--green-700);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(28,43,30,0.25);
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+#plant-fab:active { transform: scale(0.95); }
+#plant-fab svg { width: 22px; height: 22px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Filter z-index must beat Leaflet panes */
+#map-filter { z-index: 1000; }
+#plant-fab { z-index: 1000; }
+
+/* ── FEED VIEW ── */
+#feed-view { padding: 0 0 16px; }
+
+.feed-section-label {
+  padding: 20px 20px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--stone-500);
+}
+
+.post-card {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--stone-300);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--green-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--green-700);
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+}
+
+.avatar.gold { background: var(--gold-100); color: var(--gold-600); }
+.avatar.sage { background: var(--green-50); color: var(--green-600); }
+
+.post-meta { flex: 1; }
+.post-author { font-size: 14px; font-weight: 500; color: var(--ink); }
+.post-location { font-size: 12px; color: var(--stone-500); }
+
+.post-time { font-size: 12px; color: var(--stone-500); }
+
+.post-body {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.post-plant-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: var(--green-50);
+  border: 1px solid var(--green-100);
+  font-size: 12px;
+  color: var(--green-700);
+  font-weight: 500;
+  width: fit-content;
+}
+
+.post-plant-tag.edible {
+  background: var(--gold-100);
+  border-color: var(--gold-200);
+  color: var(--gold-600);
+}
+
+.post-plant-tag.pollinator {
+  background: var(--violet-50);
+  border-color: var(--violet-100);
+  color: var(--violet-700);
+}
+
+/* ── Plant autocomplete ── */
+#plant-suggest {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: white;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  margin-top: 4px;
+  box-shadow: 0 6px 20px rgba(28,43,30,0.12);
+  overflow: hidden;
+  max-height: 264px;
+  overflow-y: auto;
+}
+#plant-suggest.visible { display: block; }
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 1px solid var(--stone-200);
+  background: white;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+.suggest-item:last-child { border-bottom: none; }
+.suggest-item:hover { background: var(--stone-200); }
+.suggest-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--green-600);
+}
+.suggest-dot.edible { background: var(--gold-500); }
+.suggest-dot.wildlife { background: var(--green-700); }
+.suggest-dot.pollinator { background: var(--violet-400); }
+.suggest-dot.inv { background: var(--red-700); }
+.suggest-text { display: flex; flex-direction: column; min-width: 0; }
+.suggest-name { font-size: 14px; color: var(--ink); }
+.suggest-sub { font-size: 11px; color: var(--stone-500); font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.suggest-none {
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--stone-500);
+  line-height: 1.5;
+}
+
+.post-plant-tag svg {
+  width: 12px; height: 12px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.post-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.inspire-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--stone-300);
+  border-radius: 100px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--stone-500);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.inspire-btn:hover { border-color: var(--green-400); color: var(--green-700); }
+.inspire-btn.inspired { border-color: var(--green-400); color: var(--green-700); background: var(--green-50); }
+.inspire-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+.score-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--stone-500);
+}
+.score-badge span {
+  color: var(--green-600);
+  font-weight: 600;
+}
+
+/* Feed empty state */
+.feed-empty {
+  padding: 48px 24px;
+  text-align: center;
+  display: none;
+}
+.feed-empty.visible { display: block; }
+.feed-empty-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.feed-empty-sub {
+  font-size: 14px;
+  color: var(--stone-500);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.feed-empty-btn {
+  display: inline-block;
+  padding: 10px 20px;
+  background: var(--green-700);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ── PLANT VIEW ── */
+#plant-view { padding: 24px 20px calc(32px + var(--tab-h) + var(--safe-bottom)); }
+
+.plant-view-header {
+  margin-bottom: 28px;
+}
+
+.plant-view-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+
+.plant-view-subtitle {
+  font-size: 14px;
+  color: var(--stone-500);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--stone-500);
+  margin-bottom: 7px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  background: white;
+  font-size: 15px;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  outline: none;
+  transition: border-color 0.15s;
+  appearance: none;
+}
+.form-input:focus { border-color: var(--green-500); }
+.form-input::placeholder { color: var(--stone-500); }
+
+.tag-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tag-option {
+  flex: 1;
+  min-width: calc(50% - 4px);
+  padding: 10px 8px;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  background: white;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--stone-700);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tag-option.selected.edible {
+  background: var(--gold-100);
+  border-color: var(--gold-400);
+  color: var(--gold-600);
+}
+.tag-option.selected.wildlife {
+  background: var(--green-50);
+  border-color: var(--green-400);
+  color: var(--green-700);
+}
+.tag-option.selected.both {
+  background: var(--green-50);
+  border-color: var(--green-400);
+  color: var(--green-700);
+}
+.tag-option.selected.pollinator {
+  background: var(--violet-50);
+  border-color: var(--violet-400);
+  color: var(--violet-700);
+}
+
+/* Plant Score Preview */
+#score-preview {
+  border: 1px solid var(--stone-300);
+  border-radius: 12px;
+  padding: 16px;
+  background: white;
+  margin-bottom: 20px;
+  display: none;
+}
+
+#score-preview.visible { display: block; }
+
+.score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.score-number {
+  font-family: var(--font-serif);
+  font-size: 36px;
+  font-weight: 500;
+  color: var(--green-700);
+  line-height: 1;
+}
+
+.score-status {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: var(--green-50);
+  color: var(--green-700);
+  border: 1px solid var(--green-100);
+}
+.score-status.warn {
+  background: var(--gold-100);
+  color: var(--gold-600);
+  border-color: var(--gold-200);
+}
+.score-status.danger {
+  background: var(--red-50);
+  color: var(--red-700);
+  border-color: var(--red-200);
+}
+
+.score-bar-track {
+  height: 4px;
+  background: var(--stone-200);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.score-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--green-500);
+  transition: width 0.6s ease;
+}
+
+.score-reason {
+  font-size: 13px;
+  color: var(--stone-700);
+  line-height: 1.5;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--green-700);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.submit-btn:hover { background: var(--green-600); }
+.submit-btn:active { transform: scale(0.99); }
+.submit-btn:disabled { background: var(--stone-300); color: var(--stone-500); cursor: not-allowed; }
+
+/* ── PROFILE VIEW ── */
+#profile-view { padding: 24px 20px 32px; }
+
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--stone-300);
+}
+
+.profile-avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--green-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--green-700);
+  flex-shrink: 0;
+}
+
+.profile-name {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--ink);
+}
+.profile-handle { font-size: 13px; color: var(--stone-500); margin-top: 2px; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid var(--stone-300);
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+}
+
+.stat-num {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--stone-500);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--stone-500);
+  margin-bottom: 12px;
+}
+
+.plant-log-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--stone-300);
+}
+
+.plant-log-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-400);
+  flex-shrink: 0;
+}
+.plant-log-dot.edible { background: var(--gold-400); }
+
+.plant-log-name {
+  flex: 1;
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.plant-log-date {
+  font-size: 12px;
+  color: var(--stone-500);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--stone-300);
+  cursor: pointer;
+}
+
+.settings-row-label {
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.settings-row-value {
+  font-size: 13px;
+  color: var(--stone-500);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-row-value svg {
+  width: 14px; height: 14px;
+  stroke: var(--stone-500); fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* AI badge */
+.ai-banner {
+  margin: 0 20px 16px;
+  padding: 12px 14px;
+  background: var(--green-50);
+  border: 1px solid var(--green-100);
+  border-radius: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ai-banner-icon {
+  width: 20px; height: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  stroke: var(--green-600); fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
+.ai-banner-text { font-size: 12px; color: var(--green-700); line-height: 1.5; }
+.ai-banner-text strong { font-weight: 500; display: block; margin-bottom: 1px; color: var(--green-800); }
+
+/* ── LOCATION BAR ── */
+#location-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--stone-300);
+  background: white;
+}
+#location-bar svg { width: 14px; height: 14px; stroke: var(--green-600); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+#location-text { font-size: 13px; color: var(--stone-700); }
+#location-text strong { color: var(--green-700); font-weight: 500; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed;
+  bottom: calc(var(--tab-h) + var(--safe-bottom) + 12px);
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--green-900);
+  color: var(--stone-100);
+  padding: 10px 20px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s, transform 0.2s;
+  white-space: nowrap;
+  z-index: 200;
+  max-width: 320px;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ── ONBOARDING SPLASH ── */
+#splash {
+  position: fixed;
+  inset: 0;
+  background: var(--green-900);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 32px;
+  text-align: center;
+  transition: opacity 0.4s, transform 0.4s;
+}
+#splash.hidden { opacity: 0; pointer-events: none; transform: scale(0.98); }
+
+.splash-mark {
+  width: 72px;
+  height: 72px;
+  background: var(--green-800);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 28px;
+}
+.splash-mark svg { width: 40px; height: 40px; stroke: var(--gold-400); fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+.splash-title {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 400;
+  color: var(--stone-100);
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+.splash-title em { color: var(--gold-400); font-style: italic; }
+
+.splash-tagline {
+  font-size: 15px;
+  color: var(--green-200);
+  margin-bottom: 48px;
+  font-weight: 300;
+}
+
+.splash-cta {
+  width: 100%;
+  max-width: 280px;
+  padding: 15px;
+  background: var(--gold-400);
+  color: var(--green-900);
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.splash-cta:hover { background: var(--gold-500); }
+
+.splash-secondary {
+  font-size: 13px;
+  color: var(--green-400);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: none;
+  border: none;
+  font-family: var(--font-sans);
+}
+
+.splash-privacy {
+  margin-top: 32px;
+  font-size: 11px;
+  color: var(--green-500);
+  line-height: 1.6;
+}
+
+/* scrollbar */
+#content::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-mark">
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <path d="M20 34C20 34 8 26 8 16a12 12 0 0 1 24 0c0 10-12 18-12 18z"/>
+      <circle cx="20" cy="16" r="4"/>
+      <path d="M20 20v8"/>
+    </svg>
+  </div>
+  <h1 class="splash-title">Johnny <em>Appleseed</em></h1>
+  <p class="splash-tagline">Plant something. Feed someone.<br>Grow a community.</p>
+  <button class="splash-cta" onclick="enterApp()">Get started</button>
+  <button class="splash-secondary" onclick="enterApp()">Browse without an account</button>
+  <p class="splash-privacy">No account required to browse.<br>No tracking. No ads. Your data stays on your device.</p>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <span id="topbar-wordmark">Johnny <span>Appleseed</span></span>
+    <div id="topbar-actions">
+      <button class="icon-btn" aria-label="Search" onclick="showToast('Search coming soon')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+      <button class="icon-btn" aria-label="Notifications" onclick="showToast('Notifications coming soon')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- MAP VIEW -->
+    <div id="map-view" class="view active">
+      <div id="map-filter">
+        <button class="filter-pill active" onclick="setFilter(this,'all')">All plants</button>
+        <button class="filter-pill" onclick="setFilter(this,'edible')">Edible</button>
+        <button class="filter-pill" onclick="setFilter(this,'wildlife')">Wildlife</button>
+        <button class="filter-pill" onclick="setFilter(this,'pollinator')">Pollinators</button>
+        <button class="filter-pill" onclick="setFilter(this,'near')">Near me</button>
+      </div>
+      <div id="leaflet-map"></div>
+      <div id="map-fallback">
+        <p>Map couldn't load.<br>Check your connection and refresh.</p>
+      </div>
+      <button id="plant-fab" aria-label="Plant something here" onclick="switchTab('plant')">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+
+    <!-- FEED VIEW -->
+    <div id="feed-view" class="view">
+
+      <div id="location-bar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="location-text">Showing plants near <strong>Cibolo, TX</strong></span>
+      </div>
+
+      <div class="ai-banner">
+        <svg class="ai-banner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
+        <div class="ai-banner-text">
+          <strong>Plant intelligence active</strong>
+          Each plant below is scored for your location, season, and soil conditions.
+        </div>
+      </div>
+
+      <div class="feed-section-label">Recent plantings nearby</div>
+
+      <div class="post-card">
+        <div class="post-header">
+          <div class="avatar gold">MR</div>
+          <div class="post-meta">
+            <div class="post-author">Maria R.</div>
+            <div class="post-location">0.4 mi away &middot; Schertz, TX</div>
+          </div>
+          <span class="post-time">2h</span>
+        </div>
+        <p class="post-body">Just put in a Meyer lemon along the south fence. Soil was clay-heavy so I amended with compost first. Fingers crossed.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div class="post-plant-tag edible">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 4v8m-4-4h8"/></svg>
+            Meyer Lemon
+          </div>
+          <div class="post-plant-tag">
+            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
+            Zone 8b compatible
+          </div>
+        </div>
+        <div class="post-footer">
+          <button class="inspire-btn" onclick="toggleInspire(this)">
+            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
+            This inspires me
+          </button>
+          <span class="score-badge">Plant score <span>91</span></span>
+        </div>
+      </div>
+
+      <div class="post-card">
+        <div class="post-header">
+          <div class="avatar">DK</div>
+          <div class="post-meta">
+            <div class="post-author">David K.</div>
+            <div class="post-location">1.1 mi away &middot; Universal City, TX</div>
+          </div>
+          <span class="post-time">5h</span>
+        </div>
+        <p class="post-body">Planted three native Beautyberry shrubs along the back fence for the birds. Soil temp was perfect, 68 degrees.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div class="post-plant-tag">
+            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
+            American Beautyberry
+          </div>
+          <div class="post-plant-tag">
+            <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
+            Native &middot; TX
+          </div>
+        </div>
+        <div class="post-footer">
+          <button class="inspire-btn inspired" onclick="toggleInspire(this)">
+            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
+            Inspired
+          </button>
+          <span class="score-badge">Plant score <span>97</span></span>
+        </div>
+      </div>
+
+      <div class="post-card">
+        <div class="post-header">
+          <div class="avatar sage">TW</div>
+          <div class="post-meta">
+            <div class="post-author">Tasha W.</div>
+            <div class="post-location">2.3 mi away &middot; Cibolo, TX</div>
+          </div>
+          <span class="post-time">1d</span>
+        </div>
+        <p class="post-body">Started a blackberry patch in the side yard. It's going to take over everything but honestly that's the point. Free fruit in two years.</p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <div class="post-plant-tag edible">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 1 10 10c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2zm0 4v8m-4-4h8"/></svg>
+            Blackberry
+          </div>
+        </div>
+        <div class="post-footer">
+          <button class="inspire-btn" onclick="toggleInspire(this)">
+            <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
+            This inspires me
+          </button>
+          <span class="score-badge">Plant score <span>88</span></span>
+        </div>
+      </div>
+
+      <div class="feed-empty" id="feed-empty">
+        <p class="feed-empty-title">No plantings nearby yet</p>
+        <p class="feed-empty-sub">Be the first in your area to log a planting.<br>Every pin on the map is a gift to a neighbor.</p>
+        <button class="feed-empty-btn" onclick="switchTab('plant')">Log a planting</button>
+      </div>
+
+    </div>
+
+    <!-- PLANT VIEW -->
+    <div id="plant-view" class="view">
+      <div class="plant-view-header">
+        <h2 class="plant-view-title">Log a planting</h2>
+        <p class="plant-view-subtitle">We'll check timing, zone, and soil conditions for you.</p>
+      </div>
+
+      <div class="form-group" style="position:relative">
+        <label class="form-label" for="plant-name">Plant name</label>
+        <input class="form-input" id="plant-name" type="text" placeholder="e.g. Fig tree, Blackberry, Pecan..." autocomplete="off" oninput="onPlantInput(this)">
+        <div id="plant-suggest"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="plant-location">Location</label>
+        <input class="form-input" id="plant-location" type="text" placeholder="Tap to use current location" readonly onclick="showToast('Location access coming in next build')">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <div class="tag-row">
+          <button class="tag-option edible" onclick="selectTag(this,'edible')">Edible</button>
+          <button class="tag-option wildlife selected wildlife" onclick="selectTag(this,'wildlife')">Wildlife</button>
+          <button class="tag-option pollinator" onclick="selectTag(this,'pollinator')">Pollinators</button>
+          <button class="tag-option both" onclick="selectTag(this,'both')">All of the above</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="plant-note">Note (optional)</label>
+        <input class="form-input" id="plant-note" type="text" placeholder="Soil prep, method, observations..." maxlength="255">
+      </div>
+
+      <!-- Score Preview -->
+      <div id="score-preview">
+        <div class="score-header">
+          <div>
+            <div style="font-size:11px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase;color:var(--stone-500);margin-bottom:4px">Plant score</div>
+            <div class="score-number" id="score-num">94</div>
+          </div>
+          <div class="score-status" id="score-status">Plant now</div>
+        </div>
+        <div class="score-bar-track">
+          <div class="score-bar-fill" id="score-bar" style="width:94%"></div>
+        </div>
+        <p class="score-reason" id="score-reason">Soil temperature is 71°F — ideal range. Your last frost was 8 weeks ago. Zone 8b compatible. No invasive flags for Bexar County.</p>
+      </div>
+
+      <button class="submit-btn" onclick="submitPlant()">Log this planting</button>
+    </div>
+
+    <!-- PROFILE VIEW -->
+    <div id="profile-view" class="view">
+
+      <div class="profile-hero">
+        <div class="profile-avatar-lg">J</div>
+        <div>
+          <div class="profile-name">Jason</div>
+          <div class="profile-handle">Cibolo, TX &middot; Zone 8b</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-num">7</div>
+          <div class="stat-label">Planted</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Fruiting</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num">12</div>
+          <div class="stat-label">Species</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:28px">
+        <div class="section-title">My plants</div>
+        <div class="plant-log-item">
+          <div class="plant-log-dot edible"></div>
+          <span class="plant-log-name">Fig tree</span>
+          <span class="plant-log-date">Apr 12</span>
+        </div>
+        <div class="plant-log-item">
+          <div class="plant-log-dot"></div>
+          <span class="plant-log-name">American Beautyberry</span>
+          <span class="plant-log-date">Mar 28</span>
+        </div>
+        <div class="plant-log-item">
+          <div class="plant-log-dot edible"></div>
+          <span class="plant-log-name">Blackberry</span>
+          <span class="plant-log-date">Mar 15</span>
+        </div>
+        <div class="plant-log-item">
+          <div class="plant-log-dot"></div>
+          <span class="plant-log-name">Texas Redbud</span>
+          <span class="plant-log-date">Feb 20</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:28px">
+        <div class="section-title">Settings</div>
+        <div class="settings-row" onclick="showToast('API key settings coming soon')">
+          <span class="settings-row-label">AI key (Claude)</span>
+          <span class="settings-row-value">Not set <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+        <div class="settings-row" onclick="showToast('Radius settings coming soon')">
+          <span class="settings-row-label">Feed radius</span>
+          <span class="settings-row-value">50 miles <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+        <div class="settings-row" onclick="showToast('Notifications coming soon')">
+          <span class="settings-row-label">Planting reminders</span>
+          <span class="settings-row-value">Off <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+        <div class="settings-row" onclick="showToast('Data cleared from this device')">
+          <span class="settings-row-label" style="color:var(--red-700)">Clear my data</span>
+          <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
+      </div>
+
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.3.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- TAB BAR -->
+  <nav id="tab-bar" role="navigation" aria-label="Main navigation">
+    <button class="tab-btn active" onclick="switchTab('map')" aria-label="Map">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="tab-label">Map</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('feed')" aria-label="Feed">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span class="tab-label">Feed</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('plant')" aria-label="Plant">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
+      <span class="tab-label">Plant</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('profile')" aria-label="Profile">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="tab-label">Profile</span>
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const VIEWS = ['map','feed','plant','profile'];
+let activeTab = 'map';
+let toastTimer = null;
+
+/* ── MAP ── */
+let map = null;
+let markers = [];
+const PIN_COLORS = { edible: '#D97B1A', wildlife: '#335736', pollinator: '#6D28D9', both: '#4A7C59' };
+
+/* ── PLANT INTELLIGENCE v1 — Central/South Texas (Zone 8b/9a) ──
+   Sources: Bexar County Master Gardeners planting calendar,
+   Texas A&M AgriLife, Texas A&M Forest Service invasive lists,
+   TexasInvasives.org, Xerces Society Southern Plains, NRCS.
+   Live weather + zone APIs replace static month tables in Session 3. */
+const REGION = { name: "Cibolo, TX", zone: "8b/9a" };
+const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// tags: edible | wildlife | pollinator. m: planting months (1-12).
+// native: TX native. inv: invasive in TX (never plant). warn: safety note.
+const PLANT_DB = [
+  // ── EDIBLE TREES / SHRUBS / PERENNIALS ──
+  { n:"Fig tree", sci:"Ficus carica", tags:["edible"], native:false, m:[2,3,10,11], note:"Plant late winter or fall; fruits in 2 years" },
+  { n:"Pecan", sci:"Carya illinoinensis", tags:["edible","wildlife"], native:true, m:[11,12,1,2], note:"State tree; plant dormant, bare-root" },
+  { n:"Blackberry", sci:"Rubus spp.", tags:["edible","wildlife"], native:true, m:[12,1,2], note:"Bare-root in winter; fruit year 2" },
+  { n:"Meyer Lemon", sci:"Citrus x meyeri", tags:["edible"], native:false, m:[3,4], note:"Plant after last frost; protect below 28F" },
+  { n:"Pomegranate", sci:"Punica granatum", tags:["edible","pollinator"], native:false, m:[2,3,10], note:"Heat-loving, drought-tough once established" },
+  { n:"Texas Persimmon", sci:"Diospyros texana", tags:["edible","wildlife"], native:true, m:[11,12,1,2], note:"Small native tree; black fruit feeds birds and people" },
+  { n:"Loquat", sci:"Eriobotrya japonica", tags:["edible"], native:false, m:[2,3,10], note:"Evergreen; spring fruit in mild winters" },
+  { n:"Jujube", sci:"Ziziphus jujuba", tags:["edible"], native:false, m:[2,3], note:"Nearly indestructible in Texas heat" },
+  { n:"Prickly Pear", sci:"Opuntia engelmannii", tags:["edible","wildlife"], native:true, m:[4,5,6,7,8,9], note:"Root pads in warm months; tunas + nopales" },
+  { n:"Agarita", sci:"Mahonia trifoliolata", tags:["edible","wildlife","pollinator"], native:true, m:[10,11,2], note:"Early nectar for bees; red berries for jelly" },
+  { n:"Mustang Grape", sci:"Vitis mustangensis", tags:["edible","wildlife"], native:true, m:[1,2,12], note:"Vigorous native vine; jelly and wine" },
+  { n:"Chile Pequin", sci:"Capsicum annuum var. glabriusculum", tags:["edible","wildlife"], native:true, m:[3,4,5], note:"Native bird pepper; mockingbirds love it" },
+  { n:"Yaupon Holly", sci:"Ilex vomitoria", tags:["wildlife","edible"], native:true, m:[10,11,2,3], note:"Only native NA caffeine plant (tea); berries for birds" },
+  { n:"Red Mulberry", sci:"Morus rubra", tags:["edible","wildlife"], native:true, m:[12,1,2], note:"Native mulberry — not the invasive white species" },
+
+  // ── VEGETABLES (San Antonio–area windows, Bexar Co. Master Gardeners) ──
+  { n:"Tomato (transplants)", sci:"Solanum lycopersicum", tags:["edible"], native:false, m:[3,7], note:"Spring: March. Fall crop: late July transplants" },
+  { n:"Pepper (transplants)", sci:"Capsicum annuum", tags:["edible"], native:false, m:[3,4,7], note:"Spring + fall crop from July transplants" },
+  { n:"Okra", sci:"Abelmoschus esculentus", tags:["edible"], native:false, m:[4,5,6,7], note:"Loves heat; soil 70F+; sow thru midsummer" },
+  { n:"Southern Peas (black-eyed)", sci:"Vigna unguiculata", tags:["edible"], native:false, m:[4,5,6,7,8], note:"Thrives in summer heat" },
+  { n:"Sweet Potato (slips)", sci:"Ipomoea batatas", tags:["edible"], native:false, m:[4,5,6], note:"Slips April–June; harvest before frost" },
+  { n:"Squash", sci:"Cucurbita pepo", tags:["edible","pollinator"], native:false, m:[3,4,8], note:"Spring + Aug sowing for fall crop" },
+  { n:"Zucchini", sci:"Cucurbita pepo", tags:["edible","pollinator"], native:false, m:[3,4,8], note:"Same windows as squash" },
+  { n:"Cucumber", sci:"Cucumis sativus", tags:["edible"], native:false, m:[3,4,8], note:"Spring + early Aug for fall" },
+  { n:"Watermelon", sci:"Citrullus lanatus", tags:["edible"], native:false, m:[3,4,5], note:"Sow after soil hits 70F" },
+  { n:"Cantaloupe", sci:"Cucumis melo", tags:["edible"], native:false, m:[3,4,5], note:"Needs warm soil and space" },
+  { n:"Green Beans", sci:"Phaseolus vulgaris", tags:["edible"], native:false, m:[3,4,8,9], note:"Spring + fall sowings" },
+  { n:"Sweet Corn", sci:"Zea mays", tags:["edible"], native:false, m:[3,4], note:"Sow in blocks for pollination" },
+  { n:"Eggplant (transplants)", sci:"Solanum melongena", tags:["edible"], native:false, m:[4,5,7], note:"Handles heat; July transplants for fall" },
+  { n:"Pumpkin", sci:"Cucurbita spp.", tags:["edible"], native:false, m:[6,7], note:"Sow early July for Halloween harvest" },
+  { n:"Basil", sci:"Ocimum basilicum", tags:["edible","pollinator"], native:false, m:[4,5,6,7], note:"Heat lover; bees work the blooms" },
+  { n:"Garlic", sci:"Allium sativum", tags:["edible"], native:false, m:[10,11], note:"Plant cloves Oct–Nov; harvest late spring" },
+  { n:"Onion (short-day transplants)", sci:"Allium cepa", tags:["edible"], native:false, m:[1,11], note:"Transplants in January here" },
+  { n:"Potato", sci:"Solanum tuberosum", tags:["edible"], native:false, m:[2,8], note:"Mid-Feb spring; mid-Aug fall crop" },
+  { n:"Lettuce", sci:"Lactuca sativa", tags:["edible"], native:false, m:[1,2,9,10,11], note:"Cool-season; bolts in heat" },
+  { n:"Spinach", sci:"Spinacia oleracea", tags:["edible"], native:false, m:[1,2,10,11], note:"Cool-season only here" },
+  { n:"Kale", sci:"Brassica oleracea", tags:["edible"], native:false, m:[2,9,10,11], note:"Sweeter after light frost" },
+  { n:"Collards", sci:"Brassica oleracea", tags:["edible"], native:false, m:[2,9,10,11], note:"Southern staple; very heat-tolerant green" },
+  { n:"Broccoli (transplants)", sci:"Brassica oleracea", tags:["edible"], native:false, m:[1,2,8,9], note:"Fall transplants Aug–Sep beat the heat" },
+  { n:"Cabbage (transplants)", sci:"Brassica oleracea", tags:["edible"], native:false, m:[1,2,8,9], note:"Fall + late-winter windows" },
+  { n:"Cauliflower (transplants)", sci:"Brassica oleracea", tags:["edible"], native:false, m:[8,9], note:"Fall only — spring gets too hot" },
+  { n:"Carrot", sci:"Daucus carota", tags:["edible"], native:false, m:[1,2,9,10,11], note:"Sow in cool months" },
+  { n:"Radish", sci:"Raphanus sativus", tags:["edible"], native:false, m:[2,3,9,10,11], note:"Fast; 30 days in cool weather" },
+  { n:"Beets", sci:"Beta vulgaris", tags:["edible"], native:false, m:[2,9,10], note:"Cool-season root" },
+  { n:"Swiss Chard", sci:"Beta vulgaris", tags:["edible"], native:false, m:[2,3,9,10], note:"Most heat-tolerant leafy green" },
+  { n:"Turnips", sci:"Brassica rapa", tags:["edible"], native:false, m:[2,9,10], note:"Roots + greens" },
+
+  // ── POLLINATOR NATIVES (Xerces Southern Plains / NRCS) ──
+  { n:"Texas Lantana", sci:"Lantana urticoides", tags:["pollinator","wildlife"], native:true, m:[3,4,10], note:"Native lantana — not invasive tropical camara" },
+  { n:"Mealy Blue Sage", sci:"Salvia farinacea", tags:["pollinator"], native:true, m:[3,4,10,11], note:"Long-blooming bee favorite" },
+  { n:"Autumn Sage", sci:"Salvia greggii", tags:["pollinator"], native:true, m:[3,4,10,11], note:"Hummingbird staple; blooms spring–frost" },
+  { n:"Gregg's Mistflower", sci:"Conoclinium greggii", tags:["pollinator"], native:true, m:[3,4,10], note:"Queen butterfly magnet" },
+  { n:"Turk's Cap", sci:"Malvaviscus arboreus", tags:["pollinator","wildlife","edible"], native:true, m:[3,4,10], note:"Shade-tolerant; hummingbirds; edible fruit/flowers" },
+  { n:"Flame Acanthus", sci:"Anisacanthus quadrifidus", tags:["pollinator"], native:true, m:[3,4,10], note:"Hummingbird shrub; laughs at drought" },
+  { n:"Purple Coneflower", sci:"Echinacea purpurea", tags:["pollinator","wildlife"], native:true, m:[3,4,10,11], note:"Bees, then goldfinches eat seed heads" },
+  { n:"Indian Blanket", sci:"Gaillardia pulchella", tags:["pollinator"], native:true, m:[9,10,11,3], note:"Sow wildflower seed in fall" },
+  { n:"Black-eyed Susan", sci:"Rudbeckia hirta", tags:["pollinator"], native:true, m:[9,10,3,4], note:"Fall-sow or spring transplant" },
+  { n:"Butterfly Milkweed", sci:"Asclepias tuberosa", tags:["pollinator"], native:true, m:[3,4,10,11], note:"Monarch host; slow to establish, worth it" },
+  { n:"Antelope Horns Milkweed", sci:"Asclepias asperula", tags:["pollinator"], native:true, m:[10,11,3], note:"THE local monarch host plant" },
+  { n:"Lemon Beebalm", sci:"Monarda citriodora", tags:["pollinator"], native:true, m:[9,10,11,3], note:"Citrus-scented; fall-sown wildflower" },
+  { n:"Blackfoot Daisy", sci:"Melampodium leucanthum", tags:["pollinator"], native:true, m:[3,4,10], note:"Tough little bloomer for hot dry spots" },
+  { n:"Frostweed", sci:"Verbesina virginica", tags:["pollinator"], native:true, m:[10,11,3], note:"Critical late-fall nectar for migrating monarchs" },
+  { n:"Maximilian Sunflower", sci:"Helianthus maximiliani", tags:["pollinator","wildlife"], native:true, m:[10,11,3], note:"Fall gold; birds strip the seeds" },
+  { n:"Aromatic Aster", sci:"Symphyotrichum oblongifolium", tags:["pollinator"], native:true, m:[10,11,3], note:"Last call for bees before winter" },
+  { n:"Texas Bluebonnet", sci:"Lupinus texensis", tags:["pollinator"], native:true, m:[9,10,11], note:"State flower; MUST fall-sow (Sep–Nov)" },
+  { n:"Coral Honeysuckle", sci:"Lonicera sempervirens", tags:["pollinator","wildlife"], native:true, m:[2,3,10,11], note:"The GOOD honeysuckle — native, non-invasive" },
+  { n:"Golden Crownbeard", sci:"Verbesina encelioides", tags:["pollinator"], native:true, m:[3,4,9,10], note:"Long bloom; tough as nails" },
+  { n:"Zinnia", sci:"Zinnia elegans", tags:["pollinator"], native:false, m:[3,4,5,6,7], note:"Annual; butterflies all summer" },
+
+  // ── WILDLIFE NATIVES ──
+  { n:"American Beautyberry", sci:"Callicarpa americana", tags:["wildlife"], native:true, m:[10,11,2,3], note:"Purple berries feed 40+ bird species" },
+  { n:"Possumhaw", sci:"Ilex decidua", tags:["wildlife"], native:true, m:[11,12,1,2], note:"Winter berries when birds need them most" },
+  { n:"Eastern Redbud", sci:"Cercis canadensis", tags:["wildlife","pollinator"], native:true, m:[11,12,1,2], note:"First bee food of spring" },
+  { n:"Texas Redbud", sci:"Cercis canadensis var. texensis", tags:["wildlife","pollinator"], native:true, m:[11,12,1,2], note:"Glossier, more drought-proof redbud" },
+  { n:"Mexican Plum", sci:"Prunus mexicana", tags:["wildlife","pollinator","edible"], native:true, m:[11,12,1,2], note:"Spring blossom cloud; plums for jelly + wildlife" },
+  { n:"Desert Willow", sci:"Chilopsis linearis", tags:["pollinator","wildlife"], native:true, m:[3,4,10], note:"Orchid-like blooms; hummingbirds" },
+  { n:"Cedar Elm", sci:"Ulmus crassifolia", tags:["wildlife"], native:true, m:[11,12,1,2], note:"Tough native shade tree" },
+  { n:"Texas Red Oak", sci:"Quercus buckleyi", tags:["wildlife"], native:true, m:[11,12,1,2], note:"Acorns feed everything; great fall color" },
+  { n:"Live Oak", sci:"Quercus virginiana", tags:["wildlife"], native:true, m:[11,12,1,2], note:"The 300-year gift to your block" },
+  { n:"Wax Myrtle", sci:"Morella cerifera", tags:["wildlife"], native:true, m:[10,11,2,3], note:"Evergreen screen; berries for songbirds" },
+  { n:"Rough-leaf Dogwood", sci:"Cornus drummondii", tags:["wildlife","pollinator"], native:true, m:[11,12,1,2], note:"Thicket-former; 40+ bird species use it" },
+  { n:"Texas Mountain Laurel", sci:"Dermatophyllum secundiflorum", tags:["pollinator","wildlife"], native:true, m:[10,11,3], warn:"Seeds are toxic if chewed — site away from small kids", note:"Grape-soda blooms; evergreen native" },
+
+  // ── INVASIVE IN TEXAS — DO NOT PLANT (TX A&M Forest Service / TexasInvasives.org) ──
+  { n:"Chinese Tallow", sci:"Triadica sebifera", tags:["wildlife"], inv:true, alt:"Texas Red Oak or Cedar Elm", note:"Sap toxic; invades everything" },
+  { n:"Ligustrum (Privet)", sci:"Ligustrum spp.", tags:["wildlife"], inv:true, alt:"Yaupon Holly or Wax Myrtle", note:"Forms monoculture thickets" },
+  { n:"Nandina (Heavenly Bamboo)", sci:"Nandina domestica", tags:["wildlife"], inv:true, alt:"American Beautyberry or Possumhaw", note:"Berries toxic to songbirds — documented cedar waxwing die-offs" },
+  { n:"Chinaberry", sci:"Melia azedarach", tags:["wildlife"], inv:true, alt:"Mexican Plum", note:"Fruit poisonous to humans, pets, livestock" },
+  { n:"Japanese Honeysuckle", sci:"Lonicera japonica", tags:["pollinator"], inv:true, alt:"Coral Honeysuckle (native)", note:"Smothers native understory" },
+  { n:"Tropical Lantana", sci:"Lantana camara", tags:["pollinator"], inv:true, alt:"Texas Lantana (Lantana urticoides)", note:"Invasive exotic — the native looks similar and feeds more" },
+  { n:"Tree of Heaven", sci:"Ailanthus altissima", tags:[], inv:true, alt:"Cedar Elm", note:"Allelopathic; sap can cause headaches" },
+  { n:"Giant Reed", sci:"Arundo donax", tags:[], inv:true, alt:"Switchgrass or Big Muhly", note:"Clogs waterways; regrows from fragments" },
+  { n:"Kudzu", sci:"Pueraria montana", tags:[], inv:true, alt:"Coral Honeysuckle or Crossvine", note:"Covers 100 ft; kills trees" },
+  { n:"Vinca (Periwinkle)", sci:"Vinca major", tags:[], inv:true, alt:"Frogfruit or native sedges", note:"Escapes into creek corridors" },
+  { n:"White Mulberry", sci:"Morus alba", tags:["edible"], inv:true, alt:"Red Mulberry (native)", note:"Hybridizes with and displaces native red mulberry" },
+  { n:"Running Bamboo", sci:"Phyllostachys aurea", tags:[], inv:true, alt:"Switchgrass or Lindheimer Muhly", note:"Uncontainable spreader" },
+  { n:"Chinese Wisteria", sci:"Wisteria sinensis", tags:["pollinator"], inv:true, alt:"Coral Honeysuckle or Crossvine", note:"Girdles and kills mature trees" },
+  { n:"Salt Cedar", sci:"Tamarix spp.", tags:[], inv:true, alt:"Desert Willow", note:"Drains water tables; salts soil" },
+  { n:"Tropical Milkweed", sci:"Asclepias curassavica", tags:["pollinator"], inv:false, warn:"Cut back in winter or skip — year-round growth spreads OE parasite to monarchs", m:[3,4,5], note:"Prefer native Antelope Horns instead" },
+  { n:"Oleander", sci:"Nerium oleander", tags:["pollinator"], inv:false, warn:"Every part is highly toxic to people and pets", m:[3,4,10], note:"Common here, but plant with eyes open" }
+];
+
+function dbFind(name) {
+  const q = name.trim().toLowerCase();
+  return PLANT_DB.find(p => p.n.toLowerCase() === q) || null;
+}
+
+/* ── PlantScore v1 — deterministic, honest, offline ──
+   Tiers: 94 native + in window / 88 in window / 62 window edge /
+   30 off-season / 8 invasive. Live soil-temp scoring lands in Session 3. */
+function plantScore(plant) {
+  const now = new Date().getMonth() + 1; // 1-12
+  const best = (plant.m || []).map(m => MONTH_ABBR[m-1]).join(", ");
+  if (plant.inv) {
+    return { score: 8, status: "Do not plant", tier: "danger",
+      reason: "Invasive in Texas — crowds out the natives that wildlife depends on. Plant " + plant.alt + " instead." };
+  }
+  let s, status, tier, reason;
+  const inWindow = (plant.m || []).includes(now);
+  const prev = now === 1 ? 12 : now - 1;
+  const next = now === 12 ? 1 : now + 1;
+  const nearWindow = (plant.m || []).includes(next) || (plant.m || []).includes(prev);
+  if (inWindow) {
+    s = plant.native ? 94 : 88;
+    status = "Plant now"; tier = "good";
+    reason = "In your planting window (" + REGION.name + " · Zone " + REGION.zone + "). Best months: " + best + ".";
+    if (plant.native) reason += " Texas native — evolved for this soil and heat.";
+  } else if (nearWindow) {
+    s = 62; status = "Window edge"; tier = "warn";
+    reason = "You're at the edge of the window. Best months here: " + best + ".";
+  } else {
+    s = 30; status = "Wrong season"; tier = "danger";
+    reason = "Off-season in " + REGION.name + ". Best months: " + best + ".";
+  }
+  if (plant.warn) reason += " Caution: " + plant.warn + ".";
+  if (plant.note && tier === "good") reason += " " + plant.note + ".";
+  return { score: s, status: status, tier: tier, reason: reason };
+}
+
+// ── Map pins: real DB entries at demo coordinates (Supabase replaces in Session 2) ──
+const PIN_SPOTS = [
+  { db:"Fig tree", lat:29.575, lng:-98.235 }, { db:"American Beautyberry", lat:29.561, lng:-98.220 },
+  { db:"Blackberry", lat:29.548, lng:-98.248 }, { db:"Pecan", lat:29.582, lng:-98.205 },
+  { db:"Eastern Redbud", lat:29.540, lng:-98.215 }, { db:"Texas Lantana", lat:29.567, lng:-98.258 },
+  { db:"Mealy Blue Sage", lat:29.555, lng:-98.198 }, { db:"Turk's Cap", lat:29.571, lng:-98.185 },
+  { db:"Antelope Horns Milkweed", lat:29.534, lng:-98.240 }, { db:"Okra", lat:29.590, lng:-98.228 },
+  { db:"Yaupon Holly", lat:29.552, lng:-98.268 }, { db:"Texas Persimmon", lat:29.545, lng:-98.190 },
+  { db:"Coral Honeysuckle", lat:29.586, lng:-98.252 }, { db:"Mexican Plum", lat:29.529, lng:-98.210 },
+  { db:"Autumn Sage", lat:29.564, lng:-98.243 }, { db:"Prickly Pear", lat:29.577, lng:-98.270 }
+];
+function pinType(tags) {
+  if (!tags || !tags.length) return "both";
+  if (tags.length > 1) return "both";
+  return tags[0];
+}
+
+function pinIcon(type) {
+  const color = PIN_COLORS[type] || PIN_COLORS.both;
+  const inner = type === 'wildlife' || type === 'pollinator'
+    ? '<path d="M14 8v8M10 12h8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>'
+    : '<circle cx="14" cy="12" r="4" fill="white" opacity="0.9"/>';
+  return L.divIcon({
+    className: 'aps-pin',
+    html: `<svg viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2C8.48 2 4 6.48 4 12c0 7.5 10 20 10 20s10-12.5 10-20c0-5.52-4.48-10-10-10z" fill="${color}" stroke="white" stroke-width="1.5"/>${inner}</svg>`,
+    iconSize: [28, 34],
+    iconAnchor: [14, 34],
+    popupAnchor: [0, -30]
+  });
+}
+
+function initMap() {
+  if (map) return;
+  if (typeof L === 'undefined') {
+    document.getElementById('map-fallback').classList.add('visible');
+    return;
+  }
+  try {
+    map = L.map('leaflet-map', { zoomControl: false, attributionControl: true })
+      .setView([29.5616, -98.2269], 13); // Cibolo, TX
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    renderMarkers('all');
+  } catch (e) {
+    document.getElementById('map-fallback').classList.add('visible');
+  }
+}
+
+function renderMarkers(filter) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+  PIN_SPOTS.forEach(spot => {
+    const p = dbFind(spot.db);
+    if (!p) return;
+    const show = filter === 'all' || filter === 'near' || (p.tags || []).includes(filter);
+    if (!show) return;
+    const sc = plantScore(p);
+    const m = L.marker([spot.lat, spot.lng], { icon: pinIcon(pinType(p.tags)) })
+      .addTo(map)
+      .bindPopup(`<strong>${p.n}</strong><span class="pin-meta">${p.note} &middot; </span><span class="pin-score">Score ${sc.score}</span>`);
+    markers.push(m);
+  });
+}
+
+function enterApp() {
+  const s = document.getElementById('splash');
+  s.classList.add('hidden');
+  setTimeout(() => s.remove(), 500);
+  // Map size is wrong if Leaflet measured while splash covered it
+  if (map) setTimeout(() => map.invalidateSize(), 450);
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  VIEWS.forEach(v => {
+    document.getElementById(v + '-view').classList.toggle('active', v === tab);
+  });
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', VIEWS[i] === tab);
+  });
+  const topbar = document.getElementById('topbar');
+  if (tab === 'map') {
+    topbar.classList.add('map-mode');
+    document.body.classList.add('tab-map');
+    // Recalculate after display:none → block
+    if (map) setTimeout(() => map.invalidateSize(), 50);
+  } else {
+    topbar.classList.remove('map-mode');
+    document.body.classList.remove('tab-map');
+  }
+}
+
+function setFilter(el, filter) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  if (map) renderMarkers(filter);
+  showToast('Filter: ' + el.textContent.trim());
+}
+
+// Fix #4: use data attribute as source of truth, not class read-after-write
+function toggleInspire(btn) {
+  const isInspired = btn.dataset.inspired === 'true';
+  const nowInspired = !isInspired;
+  btn.dataset.inspired = nowInspired;
+  btn.classList.toggle('inspired', nowInspired);
+  const iconPath = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
+  btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${iconPath}</svg>${nowInspired ? ' Inspired' : ' This inspires me'}`;
+}
+
+function selectTag(el, type) {
+  document.querySelectorAll('.tag-option').forEach(t => t.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function renderScore(plant) {
+  const preview = document.getElementById('score-preview');
+  const sc = plantScore(plant);
+  preview.classList.add('visible');
+  document.getElementById('score-num').textContent = sc.score;
+  const bar = document.getElementById('score-bar');
+  bar.style.width = sc.score + '%';
+  bar.style.background = sc.tier === 'good' ? 'var(--green-500)' : sc.tier === 'warn' ? 'var(--gold-500)' : 'var(--red-700)';
+  const statusEl = document.getElementById('score-status');
+  statusEl.textContent = sc.status;
+  statusEl.className = 'score-status' + (sc.tier === 'warn' ? ' warn' : sc.tier === 'danger' ? ' danger' : '');
+  document.getElementById('score-reason').textContent = sc.reason;
+}
+
+function hideScore() {
+  document.getElementById('score-preview').classList.remove('visible');
+}
+
+function onPlantInput(input) {
+  const val = input.value.trim();
+  const sugBox = document.getElementById('plant-suggest');
+  if (val.length < 2) {
+    sugBox.classList.remove('visible');
+    hideScore();
+    return;
+  }
+  const q = val.toLowerCase();
+  const hits = PLANT_DB.filter(p =>
+    p.n.toLowerCase().includes(q) || p.sci.toLowerCase().includes(q)
+  ).slice(0, 6);
+  if (hits.length) {
+    sugBox.innerHTML = hits.map(p => {
+      const t = pinType(p.tags);
+      const cls = p.inv ? 'inv' : t;
+      const sub = p.inv ? 'Invasive — do not plant' : p.sci;
+      return `<button class="suggest-item" onclick="pickPlant('${p.n.replace(/'/g, "\\'")}')">` +
+        `<span class="suggest-dot ${cls}"></span>` +
+        `<span class="suggest-text"><span class="suggest-name">${p.n}</span>` +
+        `<span class="suggest-sub">${sub}</span></span></button>`;
+    }).join('');
+    sugBox.classList.add('visible');
+  } else {
+    sugBox.innerHTML = '<div class="suggest-none">Not in our Texas database yet — logging still works. AI lookup for any plant arrives with the Claude key feature.</div>';
+    sugBox.classList.add('visible');
+  }
+  const exact = dbFind(val);
+  if (exact) renderScore(exact); else hideScore();
+}
+
+function pickPlant(name) {
+  const input = document.getElementById('plant-name');
+  input.value = name;
+  document.getElementById('plant-suggest').classList.remove('visible');
+  const p = dbFind(name);
+  if (p) renderScore(p);
+}
+
+function submitPlant() {
+  const name = document.getElementById('plant-name').value.trim();
+  if (!name) { showToast('Enter a plant name first'); return; }
+  showToast(name + ' logged. Thank you for planting.');
+  document.getElementById('plant-name').value = '';
+  document.getElementById('plant-note').value = '';
+  document.getElementById('score-preview').classList.remove('visible');
+  setTimeout(() => switchTab('feed'), 1200);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Init: set map mode on load since map is the default tab
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('topbar').classList.add('map-mode');
+  document.body.classList.add('tab-map');
+  initMap();
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

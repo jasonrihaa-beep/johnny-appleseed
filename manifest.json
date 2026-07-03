@@ -1,0 +1,16 @@
+{
+  "name": "Johnny Appleseed",
+  "short_name": "Appleseed",
+  "description": "Plant something. Feed someone. Grow a community.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1C2B1E",
+  "theme_color": "#1C2B1E",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["social", "lifestyle", "food"],
+  "lang": "en-US"
+}
