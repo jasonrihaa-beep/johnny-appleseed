@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.6.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.7.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -84,6 +84,31 @@ Written for the agent, not for humans.
 6. **Blocks table exists but has no client logic until S4c.**
 7. Self-inspire allowed; DB trigger suppresses self-notification.
 
+## S4c design decisions (final — from S4C_SPEC.md)
+
+1. **Comments live inline** — accordion thread under each feed card,
+   lazy-loaded on first expand. No detail pages, no modals.
+2. **Report is write-only by design.** Thank-you toast, nothing else —
+   no status, no outcome visibility. Reports table has no read policy;
+   **the Supabase dashboard IS the moderation queue** (Table Editor →
+   reports, newest first; judge by target_id; dashboard delete cascades
+   cleanup). No admin UI until volume demands it.
+3. **Block = hide-from-me.** Filters the blocker's own feed, map pins,
+   and comment threads client-side (`isBlocked()` / `blockedIds`).
+   Does not make anyone's content private.
+4. **Owner moderation is distributed:** plant owners delete any comment
+   under their plant (DB policy grants it); commenters delete their own
+   anywhere. Delete never shows next to Report/Block — own content gets
+   Delete only.
+5. **Overflow menu is an SVG three-dot icon** — never a glyph or emoji.
+6. **Comment caps are DB-enforced** (100/day, 280 chars); client mirrors
+   with maxlength + surfaces the DB exception as a toast.
+7. **comments.user_id HAS a DB default** (like plants, unlike
+   inspires/follows) — client sends { plant_id, body } only.
+8. **Launch gate before public promotion:** ToS + community guidelines
+   page, AIRIHA DMCA agent registration (can cover MyMeds AI too).
+   Chat-lane work, not a build task.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -109,7 +134,11 @@ Written for the agent, not for humans.
 | S4b feed pills | `id="feed-pills"`, `setFeedMode` | feed view, below location bar |
 | S4b inspires | `toggleInspireDb`, `setInspireBtn` | after loadFeed |
 | S4b follows | `toggleFollowDb`, `setFollowBtns`, `.follow-btn` | after inspires |
-| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after follows |
+| S4c comments | `toggleComments`, `loadComments`, `sendComment`, `.comment-thread` | after follows |
+| S4c action sheet | `openSheet`, `openCardSheet`, `openCommentSheet`, `#action-sheet` | after comments |
+| S4c report | `openReportSheet`, `submitReport` | after sheet |
+| S4c block | `doBlock`, `unblockPlanter`, `isBlocked`, `blockedIds`, `#blocked-list` | after report |
+| S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after block |
 | S4a email upgrade | `startEmailUpgrade`, `renderEmailRow`, `bumpLogCount` | after identity |
 | Profile hero (dynamic) | `id="profile-avatar"`, `id="profile-name-display"` | profile view |
 | Email upgrade row | `id="email-upgrade-row"` | settings, above AI key |
@@ -218,6 +247,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - ✅ S4b engagement: real inspires (client-aggregated counts), follows +
   Nearby/Following feed pills, fake feed cards removed, example pins
   labeled. Notifications accumulate silently until S4d.
-- ⏳ S4c comments + reports/blocks · ⏳ S4d notifications panel
+- ✅ S4c moderation: inline comment threads, overflow action sheet,
+  write-only reports (dashboard = mod queue), hide-from-me blocks with
+  Settings list. Launch gate before promotion: ToS/guidelines + DMCA
+  agent registration.
+- ⏳ S4d notifications panel
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
