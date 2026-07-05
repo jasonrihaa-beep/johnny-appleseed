@@ -204,6 +204,53 @@ body.tab-map #map-view {
 .leaflet-popup-content .pin-meta { color: var(--stone-500); font-size: 12px; }
 .leaflet-popup-content .pin-score { color: var(--green-600); font-weight: 600; }
 
+/* v0.9.0 richer DB-pin popup */
+.leaflet-popup-content .pin-sci {
+  display: block;
+  font-style: italic;
+  font-size: 12px;
+  color: var(--stone-500);
+  margin-bottom: 2px;
+}
+.leaflet-popup-content .pin-note {
+  display: block;
+  font-size: 12px;
+  color: var(--stone-700);
+  margin-top: 4px;
+}
+.leaflet-popup-content .pin-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+.leaflet-popup-content .pin-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: var(--gold-100);
+  border: 1px solid var(--gold-200);
+  color: var(--gold-600);
+  font-size: 11px;
+  font-weight: 500;
+}
+.leaflet-popup-content .pin-inspire-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.leaflet-popup-content .pin-inspire {
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.leaflet-popup-content .pin-insp-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green-600);
+}
+
 #map-fallback {
   position: absolute;
   inset: 0;
@@ -1523,7 +1570,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.8.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.9.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1588,6 +1635,7 @@ const sb = (typeof supabase !== 'undefined')
 let selectedType = 'wildlife';   // matches default-selected Type button
 let selectedAccess = 'private';  // safe default — see schema.sql
 let dbPlants = [];               // community plants fetched from Supabase
+let dbPinAuthors = {};           // user_id -> display_name for popup bylines
 let currentFilter = 'all';
 
 /* ── MAP ── */
@@ -1795,6 +1843,7 @@ function initMap() {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+    map.on('popupopen', onPinPopupOpen); // lazy inspire-count fetch, DB pins only
     renderMarkers('all');
     loadDbPins();
   } catch (e) {
@@ -1824,14 +1873,90 @@ function renderMarkers(filter) {
     const show = filter === 'all' || filter === 'near' ||
       (filter === 'open' ? row.access === 'public' : (row.tags || []).includes(filter));
     if (!show) return;
-    const popup = `<strong>${esc(row.plant_name)}</strong>` +
-      (row.note ? `<span class="pin-meta">${esc(row.note)} &middot; </span>` : '') +
-      (row.score != null ? `<span class="pin-score">Score ${row.score}</span>` : '');
     const m = L.marker([row.lat, row.lng], { icon: pinIcon(pinType(row.tags), row.access === 'public') })
       .addTo(map)
-      .bindPopup(popup);
+      .bindPopup(dbPinPopupHtml(row));
     markers.push(m);
   });
+}
+
+/* ── MAP INSPIRE (v0.9.0): richer DB-pin popup + engagement ── */
+// Builder for DB-pin popups ONLY — example PIN_SPOTS keep simple popups
+// (not DB rows: an inspire insert would violate the FK). esc() everywhere.
+function dbPinPopupHtml(row) {
+  const author = esc(dbPinAuthors[row.user_id] || 'Planter');
+  const seed = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
+  return `<strong>${esc(row.plant_name)}</strong>` +
+    (row.sci ? `<span class="pin-sci">${esc(row.sci)}</span>` : '') +
+    `<span class="pin-meta">by ${author}</span>` +
+    (row.note ? `<span class="pin-note">${esc(row.note)}</span>` : '') +
+    `<div class="pin-badges">` +
+      (row.access === 'public' ? `<span class="pin-chip">Open harvest</span>` : '') +
+      (row.score != null ? `<span class="pin-score">Score ${row.score}</span>` : '') +
+    `</div>
+    <div class="pin-inspire-row">
+      <button class="inspire-btn pin-inspire"
+        data-plant="${esc(row.id)}" data-inspired="false" data-count="0"
+        onclick="togglePinInspire(this)">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${seed}</svg>
+        Inspire
+      </button>
+      <span class="pin-insp-count" id="pin-insp-count-${esc(row.id)}">&ndash;</span>
+    </div>`;
+}
+
+function setPinInspire(btn, inspired, count) {
+  btn.dataset.inspired = String(inspired);
+  btn.dataset.count = String(count);
+  btn.classList.toggle('inspired', inspired);
+  const seed = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
+  btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${seed}</svg>${inspired ? ' Inspired' : ' Inspire'}`;
+  const span = document.getElementById('pin-insp-count-' + btn.dataset.plant);
+  if (span) span.textContent = count > 0 ? String(count) : ''; // hide at 0
+}
+
+// Lazy: one fetch per popupopen for that plant only — never prefetched
+async function onPinPopupOpen(e) {
+  const el = e.popup.getElement();
+  if (!el) return;
+  const btn = el.querySelector('.pin-inspire');
+  if (!btn) return; // example pin — no engagement surface
+  if (!sb) return;  // count stays at placeholder
+  const plantId = btn.dataset.plant;
+  try {
+    const { data, error } = await sb.from('inspires')
+      .select('user_id').eq('plant_id', plantId);
+    if (error) throw error;
+    const count = (data || []).length;
+    const mine = !!(myUserId && (data || []).some(r => r.user_id === myUserId));
+    setPinInspire(btn, mine, count);
+  } catch (err) { /* placeholder stands — never fake a count */ }
+}
+
+async function togglePinInspire(btn) {
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  const plantId = btn.dataset.plant;
+  const was = btn.dataset.inspired === 'true';
+  const wasCount = parseInt(btn.dataset.count || '0', 10) || 0;
+  setPinInspire(btn, !was, was ? Math.max(0, wasCount - 1) : wasCount + 1); // in-place, no reopen
+  try {
+    const session = await ensureAuth(); // anon session is a valid first action
+    const me = session.user.id;
+    myUserId = me;
+    if (!was) {
+      // user_id EXPLICIT — inspires have no column default (tripwire 11)
+      const { error } = await sb.from('inspires')
+        .insert({ plant_id: plantId, user_id: me });
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('inspires')
+        .delete().eq('plant_id', plantId).eq('user_id', me);
+      if (error) throw error;
+    }
+  } catch (e) {
+    setPinInspire(btn, was, wasCount); // revert
+    showToast(e.message || 'Could not save');
+  }
 }
 
 async function loadDbPins() {
@@ -1844,6 +1969,14 @@ async function loadDbPins() {
       .order('planted_at', { ascending: false }).limit(200);
     if (error) throw error;
     dbPlants = data || [];
+    // Planter names for popups — existing profiles in-list pattern
+    dbPinAuthors = {};
+    const uids = [...new Set(dbPlants.map(r => r.user_id))];
+    if (uids.length) {
+      const { data: profs } = await sb.from('profiles')
+        .select('id, display_name').in('id', uids);
+      (profs || []).forEach(p => { dbPinAuthors[p.id] = p.display_name; });
+    }
     renderMarkers(currentFilter);
   } catch (e) {
     showToast("Couldn't load community plantings");

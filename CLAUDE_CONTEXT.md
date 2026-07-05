@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.8.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.9.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -128,6 +128,20 @@ Written for the agent, not for humans.
 6. **The bell lives in the topbar** which hides on the Map tab —
    accepted; badge visible on Feed/Plant/Profile.
 
+## Map-inspire design decisions (final — from MAP_INSPIRE_SPEC.md, v0.9.0)
+
+1. **DB pins ONLY get the engagement popup.** PIN_SPOTS example pins keep
+   simple popups — they aren't DB rows; an inspire insert would violate
+   the FK and a non-persisting button violates honest-states.
+2. **Count is lazy** — fetched on Leaflet `popupopen` for that one
+   plant_id, never prefetched for all pins. No realtime; fresh on each
+   open, optimistic on own taps.
+3. **All user-originated popup text goes through `esc()`** — plant_name,
+   sci, note, display_name.
+4. **Feed cards and map popups may briefly disagree on count** (each
+   loads independently). Accepted at MVP scale.
+5. Self-inspire allowed, no self-notification (DB handles it).
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -150,6 +164,7 @@ Written for the agent, not for humans.
 | Access selector | `selectAccess`, `.access-option` | plant form |
 | Supabase wiring | `ensureAuth`, `submitPlant`, `loadDbPins`, `loadFeed`, `esc(` | after selectTag |
 | Live feed container | `id="feed-live"` | feed view |
+| Map-inspire popup | `dbPinPopupHtml`, `onPinPopupOpen`, `togglePinInspire`, `dbPinAuthors` | after renderMarkers |
 | S4b feed pills | `id="feed-pills"`, `setFeedMode` | feed view, below location bar |
 | S4b inspires | `toggleInspireDb`, `setInspireBtn` | after loadFeed |
 | S4b follows | `toggleFollowDb`, `setFollowBtns`, `.follow-btn` | after inspires |
@@ -285,5 +300,8 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   (poll-on-load, no realtime), first-log setup sheet, Google sign-in
   (linkIdentity for anon → durable), guarded sign-out. Deep links +
   profile pages = S4e.
+- ✅ Map-inspire (v0.9.0): richer DB-pin popups (sci, byline, note,
+  Open-harvest chip, score) + inspire from the map with lazy
+  popupopen count fetch. Example pins unchanged.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
