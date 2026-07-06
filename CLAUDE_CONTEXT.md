@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.10.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.11.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -182,6 +182,7 @@ Written for the agent, not for humans.
 | S4d notifications | `openNotifPanel`, `loadNotifBadge`, `#notif-panel`, `#notif-badge` | after block |
 | S4d setup sheet | `maybeShowSetupSheet`, `openSetupSheet(title, body)`, `ja_profile_prompted` | after notifications |
 | Onboard flow | `getStartedFlow` (splash Get started) | before maybeShowSetupSheet |
+| Sheet Google handler | `setupSheetGoogle` — flag-before-redirect, linkIdentity only | after pickSetupColor |
 | Action sheet z-index | 1100/1101 — must beat map pills/FAB (z 1000); sheet opens over Map since v0.10.0 | CSS `#action-sheet` |
 | S4d auth | `googleSignIn`, `doSignOut`, `renderEmailRow`, `#sign-in-row`, `#sign-out-row` | with S4a email upgrade |
 | S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after setup sheet |
@@ -314,6 +315,13 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   popupopen count fetch. Example pins unchanged.
 - ✅ Onboard (v0.10.0): Get started → explicit setup sheet over the map
   ("Welcome to the neighborhood."), Browse stays accountless, entry
-  never blocked. Google option joins this sheet in v0.11.0.
+  never blocked.
+- ✅ Onboard Google (v0.11.0): Continue with Google in the setup sheet,
+  both contexts. `setupSheetGoogle()` sets `ja_profile_prompted` BEFORE
+  the redirect (leaving the page can't lose the flag; error-before-
+  redirect keeps the sheet open this once, future sessions skip — an
+  accepted tradeoff). linkIdentity ONLY — both triggers arrive with an
+  anonymous session; no name prefill from Google metadata (honest and
+  minimal). Save/Skip and the Profile email path unchanged.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
