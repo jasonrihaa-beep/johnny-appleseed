@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.12.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.13.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -149,6 +149,30 @@ Written for the agent, not for humans.
    loads independently). Accepted at MVP scale.
 5. Self-inspire allowed, no self-notification (DB handles it).
 
+## Discovery design decisions (final — from DISCOVERY_SPEC.md, v0.13.0)
+
+1. **plants.kind: 'planted' | 'discovered'**, DB default 'planted'
+   (migration in schema.sql appendix, applied dashboard-side). Client
+   treats missing kind as 'planted' defensively.
+2. **Kind toggle is a THIRD single-select** — see tripwire 13. Own
+   `.kind-option` class + `selectKind()`; never shares `.tag-option`.
+3. **PlantScore stays silent for finds** — it answers a planting-timing
+   question. Found mode: no score preview, `score: null` on insert.
+   Replacement = identity line (`#found-info`, PLANT_DB facts only):
+   tags, Texas native, invasive warning + native alternative, warn
+   note. Unknown plant keeps the honest not-in-database state.
+4. **Safety caption** (misidentified wild edibles are the harm vector):
+   found mode always shows "Community identification — verify before
+   eating anything you find." Rendered surfaces (feed card, pin popup)
+   repeat "Community ID — verify before harvesting." only when the
+   find carries the edible tag.
+5. **Copy branches:** "Log this planting" ↔ "Log this find"; popup
+   byline "by" ↔ "Found by"; feed cards for finds carry a Found chip.
+6. **Access default stays 'private' for both kinds** — one rule. Daily
+   cap (50) shared across kinds — same table.
+7. **First-log setup sheet fires on the first successful log of EITHER
+   kind** — unchanged.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -169,6 +193,9 @@ Written for the agent, not for humans.
 | Autocomplete JS | `onPlantInput`, `pickPlant`, `renderScore` | ~L1560 |
 | Supabase config | `const SUPABASE_URL` | top of script |
 | Access selector | `selectAccess`, `.access-option` | plant form |
+| Kind toggle (v0.13.0) | `selectKind`, `.kind-option`, `renderPlantFacts` | plant form, above name |
+| Found identity line | `renderFoundInfo`, `id="found-info"`, `id="found-caption"` | under name group |
+| Found chip + caution | `.found-chip`, `.found-caution` | feed card template + popup builder |
 | Supabase wiring | `ensureAuth`, `submitPlant`, `loadDbPins`, `loadFeed`, `esc(` | after selectTag |
 | Live feed container | `id="feed-live"` | feed view |
 | Map-inspire popup | `dbPinPopupHtml`, `onPinPopupOpen`, `togglePinInspire`, `dbPinAuthors` | after renderMarkers |
@@ -277,6 +304,12 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     identity). Sign out appears ONLY when `user.is_anonymous === false`;
     `doSignOut()` re-checks the session before calling signOut. This is
     sacred-keys-adjacent — treat any change here as data-loss surface.
+13. **The kind toggle must NEVER share `.tag-option`** (tripwire 10
+    corollary). Three independent single-selects live on the Plant form:
+    Type (`.tag-option:not(.access-option)`), access (`.access-option`),
+    kind (`.kind-option`). Kind styling mirrors tag-option via
+    DUPLICATED CSS rules; class sharing is forbidden — sharing would let
+    any selector clear another group's selection.
 
 ## Validate-after-edit checklist — skip none
 
@@ -340,5 +373,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   Marker `ja_oauth_return` is sessionStorage — tab-scoped, ephemeral,
   explicitly NOT sacred. Confirm-context sheet hides the Google button
   (already linked — a live one would be a dead button, rule 9).
+- ✅ Discovery (v0.13.0): "I planted this" / "I found this" kind toggle
+  (third single-select, tripwire 13), finds ship unscored with a
+  PLANT_DB identity line + safety captions, Found chip on feed cards,
+  "Found by" popup bylines. plants.kind migration lives as a schema.sql
+  appendix ("-- v0.13.0 MIGRATION"), applied dashboard-side.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

@@ -147,3 +147,8 @@ create index if not exists plants_public_access_idx
 -- Display-name profanity filtering: deferred, documented gap.
 -- usda_symbol from the Session-0 sketch dropped: client has
 --   scientific names (sci), not USDA symbols.
+
+-- v0.13.0 MIGRATION (applied in dashboard)
+alter table public.plants
+  add column if not exists kind varchar(12) not null default 'planted'
+  check (kind in ('planted','discovered'));

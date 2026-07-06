@@ -921,6 +921,65 @@ body.tab-map #map-view {
   color: var(--green-700);
 }
 
+/* v0.13.0 kind toggle — THIRD single-select. Styling mirrors .tag-option
+   via DUPLICATED rules; class sharing is forbidden (tripwire 13). */
+.kind-option {
+  flex: 1;
+  min-width: calc(50% - 4px);
+  padding: 10px 8px;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  background: white;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--stone-700);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.kind-option.selected {
+  background: var(--green-50);
+  border-color: var(--green-400);
+  color: var(--green-700);
+}
+
+/* v0.13.0 found-mode identity line */
+#found-info {
+  display: none;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  background: white;
+  padding: 10px 14px;
+  margin: -8px 0 20px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+#found-info.visible { display: block; }
+.found-info-tags { display: block; color: var(--green-700); font-weight: 500; }
+.found-info-warn { display: block; color: var(--red-700); margin-top: 3px; }
+.found-info-note { display: block; color: var(--stone-700); margin-top: 3px; }
+
+/* v0.13.0 Found chip + harvest caution (feed) */
+.found-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: var(--green-50);
+  border: 1px solid var(--stone-300);
+  font-size: 12px;
+  color: var(--stone-700);
+  font-weight: 500;
+  width: fit-content;
+}
+.found-caution {
+  font-size: 12px;
+  color: var(--stone-500);
+  line-height: 1.5;
+}
+
 .form-caption {
   font-size: 12px;
   color: var(--stone-500);
@@ -1413,11 +1472,21 @@ body.tab-map #map-view {
         <p class="plant-view-subtitle">We'll check timing, zone, and soil conditions for you.</p>
       </div>
 
+      <div class="form-group">
+        <label class="form-label">What happened?</label>
+        <div class="tag-row">
+          <button class="kind-option selected" onclick="selectKind(this,'planted')">I planted this</button>
+          <button class="kind-option" onclick="selectKind(this,'discovered')">I found this</button>
+        </div>
+      </div>
+
       <div class="form-group" style="position:relative">
         <label class="form-label" for="plant-name">Plant name</label>
         <input class="form-input" id="plant-name" type="text" placeholder="e.g. Fig tree, Blackberry, Pecan..." autocomplete="off" oninput="onPlantInput(this)">
         <div id="plant-suggest"></div>
       </div>
+
+      <div id="found-info"></div>
 
       <div class="form-group">
         <label class="form-label" for="plant-location">Location</label>
@@ -1464,7 +1533,9 @@ body.tab-map #map-view {
         <p class="score-reason" id="score-reason">Soil temperature is 71°F — ideal range. Your last frost was 8 weeks ago. Zone 8b compatible. No invasive flags for Bexar County.</p>
       </div>
 
-      <button class="submit-btn" onclick="submitPlant()">Log this planting</button>
+      <p class="form-caption" id="found-caption" style="display:none">Community identification &mdash; verify before eating anything you find.</p>
+
+      <button class="submit-btn" id="submit-plant-btn" onclick="submitPlant()">Log this planting</button>
     </div>
 
     <!-- PROFILE VIEW -->
@@ -1573,7 +1644,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.12.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.13.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1637,6 +1708,7 @@ const sb = (typeof supabase !== 'undefined')
 
 let selectedType = 'wildlife';   // matches default-selected Type button
 let selectedAccess = 'private';  // safe default — see schema.sql
+let selectedKind = 'planted';    // v0.13.0: 'planted' | 'discovered'
 let dbPlants = [];               // community plants fetched from Supabase
 let dbPinAuthors = {};           // user_id -> display_name for popup bylines
 let currentFilter = 'all';
@@ -1889,9 +1961,13 @@ function renderMarkers(filter) {
 function dbPinPopupHtml(row) {
   const author = esc(dbPinAuthors[row.user_id] || 'Planter');
   const seed = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
+  // Missing kind on old cached rows renders as planted (defensive default)
+  const isFind = row.kind === 'discovered';
+  const caution = isFind && (row.tags || []).includes('edible')
+    ? ' &middot; Community ID &mdash; verify before harvesting.' : '';
   return `<strong>${esc(row.plant_name)}</strong>` +
     (row.sci ? `<span class="pin-sci">${esc(row.sci)}</span>` : '') +
-    `<span class="pin-meta">by ${author}</span>` +
+    `<span class="pin-meta">${isFind ? 'Found by' : 'by'} ${author}${caution}</span>` +
     (row.note ? `<span class="pin-note">${esc(row.note)}</span>` : '') +
     `<div class="pin-badges">` +
       (row.access === 'public' ? `<span class="pin-chip">Open harvest</span>` : '') +
@@ -2044,6 +2120,58 @@ function selectAccess(el, level) {
   selectedAccess = level;
 }
 
+// v0.13.0: THIRD single-select — scoped to .kind-option ONLY (tripwire 13)
+function selectKind(el, kind) {
+  document.querySelectorAll('.kind-option').forEach(k => k.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedKind = kind;
+  const caption = document.getElementById('found-caption');
+  const btn = document.getElementById('submit-plant-btn');
+  if (kind === 'discovered') {
+    hideScore(); // PlantScore is a PLANTING-timing answer — silent for finds
+    caption.style.display = '';
+    btn.textContent = 'Log this find';
+  } else {
+    hideFoundInfo();
+    caption.style.display = 'none';
+    btn.textContent = 'Log this planting';
+  }
+  // Re-evaluate the current input so the right panel renders
+  const exact = dbFind(document.getElementById('plant-name').value.trim());
+  if (exact) renderPlantFacts(exact);
+}
+
+// Branch: planted → score preview; found → identity line (PLANT_DB facts only)
+function renderPlantFacts(plant) {
+  if (selectedKind === 'discovered') {
+    hideScore();
+    renderFoundInfo(plant);
+  } else {
+    hideFoundInfo();
+    renderScore(plant);
+  }
+}
+
+function renderFoundInfo(p) {
+  const el = document.getElementById('found-info');
+  if (!p) { hideFoundInfo(); return; }
+  const bits = [];
+  if (p.tags && p.tags.length) bits.push(esc(p.tags.join(' · ')));
+  if (p.native) bits.push('Texas native');
+  let html = bits.length ? `<span class="found-info-tags">${bits.join(' — ')}</span>` : '';
+  if (p.inv) html += `<span class="found-info-warn">Invasive in Texas — do not spread.${p.alt ? ' Native alternative: ' + esc(p.alt) + '.' : ''}</span>`;
+  if (p.warn) html += `<span class="found-info-warn">Caution: ${esc(p.warn)}.</span>`;
+  if (!html) { hideFoundInfo(); return; }
+  el.innerHTML = html;
+  el.classList.add('visible');
+}
+
+function hideFoundInfo() {
+  const el = document.getElementById('found-info');
+  el.innerHTML = '';
+  el.classList.remove('visible');
+}
+
 function renderScore(plant) {
   const preview = document.getElementById('score-preview');
   const sc = plantScore(plant);
@@ -2068,6 +2196,7 @@ function onPlantInput(input) {
   if (val.length < 2) {
     sugBox.classList.remove('visible');
     hideScore();
+    hideFoundInfo();
     return;
   }
   const q = val.toLowerCase();
@@ -2090,7 +2219,7 @@ function onPlantInput(input) {
     sugBox.classList.add('visible');
   }
   const exact = dbFind(val);
-  if (exact) renderScore(exact); else hideScore();
+  if (exact) { renderPlantFacts(exact); } else { hideScore(); hideFoundInfo(); }
 }
 
 function pickPlant(name) {
@@ -2098,7 +2227,7 @@ function pickPlant(name) {
   input.value = name;
   document.getElementById('plant-suggest').classList.remove('visible');
   const p = dbFind(name);
-  if (p) renderScore(p);
+  if (p) renderPlantFacts(p);
 }
 
 /* ── SUPABASE WIRING (S2) ── */
@@ -2146,7 +2275,8 @@ async function submitPlant() {
     const lat = Math.round(loc.lat * 1000) / 1000;
     const lng = Math.round(loc.lng * 1000) / 1000;
     const p = dbFind(name);
-    const sc = p ? plantScore(p) : null; // unknown plant = no score, honestly
+    // Finds carry no score — PlantScore answers a planting-timing question
+    const sc = (p && selectedKind !== 'discovered') ? plantScore(p) : null;
     const tags = selectedType === 'both' ? ['edible','wildlife','pollinator'] : [selectedType];
     const note = document.getElementById('plant-note').value.trim() || null;
     // user_id comes from the DB default (auth.uid()) — NEVER send it from the client
@@ -2159,7 +2289,8 @@ async function submitPlant() {
       neighborhood: REGION.name,
       score: sc ? sc.score : null,
       note: note,
-      access: selectedAccess
+      access: selectedAccess,
+      kind: selectedKind
     });
     if (error) { showToast(error.message); return; }
     showToast(name + ' logged. Thank you for planting.');
@@ -2318,8 +2449,12 @@ async function loadFeed() {
           <div class="post-plant-tag${tagCls}">
             <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
             ${esc(row.plant_name)}
-          </div>
-        </div>
+          </div>` +
+          (row.kind === 'discovered' ? '<div class="found-chip">Found</div>' : '') +
+        `</div>` +
+        (row.kind === 'discovered' && (row.tags || []).includes('edible')
+          ? '<p class="found-caution">Community ID &mdash; verify before harvesting.</p>' : '') +
+        `
         <div class="post-footer">
           <button class="inspire-btn${mine ? ' inspired' : ''}"
             data-plant="${esc(row.id)}" data-inspired="${mine}" data-count="${count}"
