@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.11.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.12.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -183,6 +183,7 @@ Written for the agent, not for humans.
 | S4d setup sheet | `maybeShowSetupSheet`, `openSetupSheet(title, body)`, `ja_profile_prompted` | after notifications |
 | Onboard flow | `getStartedFlow` (splash Get started) | before maybeShowSetupSheet |
 | Sheet Google handler | `setupSheetGoogle` — flag-before-redirect, linkIdentity only | after pickSetupColor |
+| OAuth return handler | `handleOauthReturn` — error toast + confirm sheet | after setupSheetGoogle; called from boot |
 | Action sheet z-index | 1100/1101 — must beat map pills/FAB (z 1000); sheet opens over Map since v0.10.0 | CSS `#action-sheet` |
 | S4d auth | `googleSignIn`, `doSignOut`, `renderEmailRow`, `#sign-in-row`, `#sign-out-row` | with S4a email upgrade |
 | S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after setup sheet |
@@ -231,6 +232,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - **`ja_profile_prompted` is SACRED** (S4d) — one-shot flag for the
   first-log setup sheet. Set at show time (with read-back verify in
   `maybeShowSetupSheet()`); once '1' the sheet can never fire again.
+- **`ja_oauth_return` is sessionStorage, NOT sacred** (v0.12.0) —
+  tab-scoped OAuth-return marker, set before linkIdentity, consumed by
+  `handleOauthReturn()`. Do not add it to the sacred list; do not move
+  it to localStorage.
 - Future app keys: prefix `ja_` (e.g. `ja_profile`, `ja_feed_radius`)
 - Once created, keys are **sacred — never rename without migration**
 - Snapshot before mutate, verify read-back (MyMeds `ProfileSystem` pattern)
@@ -321,7 +326,19 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   the redirect (leaving the page can't lose the flag; error-before-
   redirect keeps the sheet open this once, future sessions skip — an
   accepted tradeoff). linkIdentity ONLY — both triggers arrive with an
-  anonymous session; no name prefill from Google metadata (honest and
-  minimal). Save/Skip and the Profile email path unchanged.
+  anonymous session; ~~no name prefill from Google metadata~~ AMENDED by
+  OAUTH_RETURN (v0.12.0): the return flow prefills the FIRST name from
+  Google metadata (given_name → first token of full_name/name → empty)
+  as an editable suggestion the user must Save. Never the full name,
+  never auto-assigned — surnames are doxxing surface on a public
+  location-tagged map. Save/Skip and the Profile email path unchanged.
+- ✅ OAuth return (v0.12.0): `handleOauthReturn()` on boot — toasts URL
+  error params verbatim then cleans the URL (marker kept for retry);
+  on marked successful return: "Garden protected — Google" toast +
+  name-confirm sheet (only when display_name is still 'Planter'),
+  gated by the sessionStorage marker, never by ja_profile_prompted.
+  Marker `ja_oauth_return` is sessionStorage — tab-scoped, ephemeral,
+  explicitly NOT sacred. Confirm-context sheet hides the Google button
+  (already linked — a live one would be a dead button, rule 9).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
