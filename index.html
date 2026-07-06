@@ -428,7 +428,8 @@ body.tab-map #map-view {
   position: fixed;
   inset: 0;
   background: rgba(13, 26, 15, 0.45);
-  z-index: 400;
+  /* Above map pills/FAB (z 1000) — the sheet opens over the Map view since v0.10.0 */
+  z-index: 1100;
 }
 #action-sheet-backdrop.open { display: block; }
 #action-sheet {
@@ -442,7 +443,7 @@ body.tab-map #map-view {
   background: var(--stone-100);
   border-radius: 16px 16px 0 0;
   padding: 16px 16px calc(16px + var(--safe-bottom));
-  z-index: 401;
+  z-index: 1101;
   box-shadow: 0 -4px 24px rgba(28, 43, 30, 0.2);
 }
 #action-sheet.open { display: block; }
@@ -1326,7 +1327,7 @@ body.tab-map #map-view {
   </div>
   <h1 class="splash-title">Johnny <em>Appleseed</em></h1>
   <p class="splash-tagline">Plant something. Feed someone.<br>Grow a community.</p>
-  <button class="splash-cta" onclick="enterApp()">Get started</button>
+  <button class="splash-cta" onclick="getStartedFlow()">Get started</button>
   <button class="splash-secondary" onclick="enterApp()">Browse without an account</button>
   <p class="splash-privacy">No account required to browse.<br>No tracking. No ads. Your data stays on your device.</p>
 </div>
@@ -1570,7 +1571,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.9.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.10.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -2804,8 +2805,33 @@ function notifRowTap() {
 /* ── S4d FIRST-LOG SETUP SHEET ── */
 let setupColor = null;
 
+/* ── ONBOARD (v0.10.0): Get started → explicit setup ── */
+// Two triggers share one sheet: first successful plant log, or an
+// explicit Get-started tap. Never automatically on app open.
+async function getStartedFlow() {
+  // Returning-visitor guard — flag is device-local, accepted (decision 4)
+  let prompted = false;
+  try { prompted = localStorage.getItem('ja_profile_prompted') === '1'; } catch (e) {}
+  enterApp();
+  if (prompted) return;
+  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  try {
+    await ensureAuth();
+  } catch (e) {
+    // Entry is never blocked (decision 5); flag NOT set — sheet never shown
+    showToast(e.message || 'Could not set up just now — you can browse anyway');
+    return;
+  }
+  if (!myProfile) await loadOwnProfile(); // Save needs the profile row
+  try {
+    localStorage.setItem('ja_profile_prompted', '1');
+    if (localStorage.getItem('ja_profile_prompted') !== '1') return; // write failed
+  } catch (e) { return; }
+  openSetupSheet('Welcome to the neighborhood.', 'What should neighbors call you?');
+}
+
 // ja_profile_prompted is a SACRED key — one-shot, set at show so the
-// sheet can never fire twice; never shown on app open (decision 5)
+// sheet can never fire twice from either trigger; never on app open
 function maybeShowSetupSheet() {
   try {
     if (localStorage.getItem('ja_profile_prompted') === '1') return;
@@ -2815,7 +2841,10 @@ function maybeShowSetupSheet() {
   openSetupSheet();
 }
 
-function openSetupSheet() {
+function openSetupSheet(title, body) {
+  // First-log defaults preserved; splash context passes its own copy (decision 3)
+  const t = title || "You're on the map.";
+  const b = body || 'What should neighbors call you?';
   const sheet = document.getElementById('action-sheet');
   const current = myProfile ? myProfile.display_name : 'Planter';
   setupColor = myProfile ? myProfile.avatar_color : null;
@@ -2824,7 +2853,7 @@ function openSetupSheet() {
       style="background:${c}" onclick="pickSetupColor(this)" aria-label="Avatar color"></button>`
   ).join('');
   sheet.innerHTML = `
-    <div class="sheet-title"><strong>You're on the map.</strong><br>What should neighbors call you?</div>
+    <div class="sheet-title"><strong>${t}</strong><br>${b}</div>
     <input class="form-input" id="setup-name" type="text" maxlength="40" value="${esc(current)}" autocomplete="off">
     <div class="setup-colors">${colorRow}</div>
     <button class="sheet-btn" style="background:var(--green-700);border-color:var(--green-700);color:white" onclick="saveSetupSheet()">Save</button>

@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.9.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.10.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -123,8 +123,15 @@ Written for the agent, not for humans.
    `signInWithOAuth`. Dashboard side: Google provider enabled +
    "manual linking" ON, redirect URI = the Supabase callback.
 4. **Sign out ONLY for non-anonymous sessions** — tripwire 12.
-5. **Setup sheet fires ONCE, after the FIRST successful plant log** —
-   never on app open. One-shot flag `ja_profile_prompted` (sacred).
+5. **Setup sheet fires ONCE — AMENDED by ONBOARD_SPEC (v0.10.0):** on the
+   FIRST successful plant log OR an explicit Get-started tap; never
+   automatically on app open. Browse path creates no session, shows no
+   sheet. One-shot flag `ja_profile_prompted` (sacred); set at show, so
+   once '1' neither trigger can fire the sheet again. Get started with
+   the flag already '1' just enters the app (device-local, accepted).
+   If ensureAuth() fails at splash: toast, enter app, flag NOT set.
+   Sheet copy is parameterized: first-log "You're on the map." /
+   splash "Welcome to the neighborhood."
 6. **The bell lives in the topbar** which hides on the Map tab —
    accepted; badge visible on Feed/Plant/Profile.
 
@@ -173,7 +180,9 @@ Written for the agent, not for humans.
 | S4c report | `openReportSheet`, `submitReport` | after sheet |
 | S4c block | `doBlock`, `unblockPlanter`, `isBlocked`, `blockedIds`, `#blocked-list` | after report |
 | S4d notifications | `openNotifPanel`, `loadNotifBadge`, `#notif-panel`, `#notif-badge` | after block |
-| S4d setup sheet | `maybeShowSetupSheet`, `openSetupSheet`, `ja_profile_prompted` | after notifications |
+| S4d setup sheet | `maybeShowSetupSheet`, `openSetupSheet(title, body)`, `ja_profile_prompted` | after notifications |
+| Onboard flow | `getStartedFlow` (splash Get started) | before maybeShowSetupSheet |
+| Action sheet z-index | 1100/1101 — must beat map pills/FAB (z 1000); sheet opens over Map since v0.10.0 | CSS `#action-sheet` |
 | S4d auth | `googleSignIn`, `doSignOut`, `renderEmailRow`, `#sign-in-row`, `#sign-out-row` | with S4a email upgrade |
 | S4a identity JS | `loadOwnProfile`, `saveNameEdit`, `cycleAvatar`, `AVATAR_PALETTE` | after setup sheet |
 | S4a email upgrade | `startEmailUpgrade`, `renderEmailRow`, `bumpLogCount` | after identity |
@@ -303,5 +312,8 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - ✅ Map-inspire (v0.9.0): richer DB-pin popups (sci, byline, note,
   Open-harvest chip, score) + inspire from the map with lazy
   popupopen count fetch. Example pins unchanged.
+- ✅ Onboard (v0.10.0): Get started → explicit setup sheet over the map
+  ("Welcome to the neighborhood."), Browse stays accountless, entry
+  never blocked. Google option joins this sheet in v0.11.0.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
