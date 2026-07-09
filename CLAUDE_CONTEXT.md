@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.18.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.19.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -330,7 +330,13 @@ Written for the agent, not for humans.
    offset glow for depth), splash-mark and splash-title em get soft
    amber glow that pulses subtly via @keyframes firefly-pulse (5s
    ease-in-out), respecting prefers-reduced-motion: no pulse, static
-   glow only.
+   glow only. AMENDED by v0.19.0: the splash-mark uses
+   firefly-pulse-box (box-shadow on a square element is correct); the
+   italic .splash-title em uses firefly-pulse-text (text-shadow follows
+   letterforms, no square). box-shadow on italic = wrong glow shape.
+9. **Splash z-index 2000** (v0.19.0) — must fully occlude map controls
+   (#map-filter and #plant-fab at z 1000). The pre-v0.19.0 z 500 let
+   pills and FAB bleed through on load.
 
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
@@ -597,6 +603,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   near-black forest #14211A, --ink → warm off-white, plus --glass/
   --glow-amber), frosted glass cards (feed/score/sheets), firefly glow
   on splash with motion-safe pulse, Fraunces + DM Sans unchanged.
-  Tripwire 17: map deliberately untouched. DB research at v0.19.0.
+  Tripwire 17: map deliberately untouched.
+- ✅ Splash fix (v0.19.0): box-shadow on italic wordmark → layered
+  text-shadow (follows letterforms, no square), firefly-pulse split
+  into -box/-text variants, splash z-index 500 → 2000 (occludes map
+  controls). Map unchanged (tripwire 17).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
