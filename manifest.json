@@ -4,8 +4,8 @@
   "description": "Plant something. Feed someone. Grow a community.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1C2B1E",
-  "theme_color": "#1C2B1E",
+  "background_color": "#14211A",
+  "theme_color": "#14211A",
   "orientation": "portrait",
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },

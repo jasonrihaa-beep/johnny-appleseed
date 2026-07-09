@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.17.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.18.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -290,6 +290,48 @@ Written for the agent, not for humans.
    One rendering path, no special cases. `pinIcon()` + `.aps-pin` CSS
    were removed with the point-pin renderer in v0.17.0.
 
+## Dark theme design decisions (final — from DARKTHEME_SPEC.md, v0.18.0)
+
+1. **Typefaces UNCHANGED.** Fraunces + DM Sans stay — they are Johnny
+   Appleseed's identity and what distinguishes it from MyMeds. Do NOT
+   introduce Instrument Serif or IBM Plex.
+2. **Method: remap the SEMANTIC surface tokens only.** The raw
+   green/gold/violet/red scales keep their hex values. Change what
+   --stone-100, --stone-200, --stone-300, --stone-500, --stone-700,
+   and --ink resolve to. Because components reference the semantic
+   tokens, most surfaces re-theme with near-zero per-component edits.
+3. **NEW dark surface values:** --stone-100 → #14211A (near-black
+   forest), --stone-200 → #1C2B22 (raised surface), --stone-300 →
+   rgba(122,153,136,0.22) (sage border), --stone-500 → #8FA398 (dimmed
+   sage text), --stone-700 → #C3D2C8 (light sage secondary),
+   --ink → #F5F1E8 (warm off-white). Added --glass:
+   rgba(28,43,34,0.72), --glass-border: rgba(245,241,232,0.14),
+   --glow-amber: rgba(244,161,39,0.22).
+4. **Tripwire 17 — the map is off-limits this build.** #leaflet-map,
+   L.circle rendering, addHazeCircle, the access opacity tiers
+   (0.25/0.15/0.08), and all popup styling are NOT touched.
+   backdrop-filter is NEVER applied over the map (Leaflet pan/zoom +
+   blur destroys framerate on mid-range Android). The map keeps its
+   current appearance; a later build re-tunes circles for dark
+   deliberately.
+5. **Contrast floor:** body text on any surface >= 4.5:1, large/
+   secondary text >= 3:1. Amber accent (#F4A127) is for glow, emphasis,
+   and the wordmark accent — never for body text on dark (fails
+   contrast). Existing green/gold/violet status pills keep their
+   meaning; backgrounds via the existing -50/-100 scale tokens only.
+6. **theme-color meta + manifest background_color** updated to #14211A
+   so the PWA shell and status bar match.
+7. **Frosted glass cards:** feed post cards, score preview, and action
+   sheets get var(--glass) + backdrop-filter: blur(12px) + glass
+   border. Explicitly EXCLUDED: anything inside #map-view and all
+   Leaflet popups.
+8. **Firefly glow:** #splash gets dual radial-gradient pseudo-elements
+   (ambient var(--glow-amber) centered slightly above middle, smaller
+   offset glow for depth), splash-mark and splash-title em get soft
+   amber glow that pulses subtly via @keyframes firefly-pulse (5s
+   ease-in-out), respecting prefers-reduced-motion: no pulse, static
+   glow only.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -345,6 +387,8 @@ Written for the agent, not for humans.
 | Map pick mode | `startMapPick`/`confirmMapPick`/`cancelMapPick`, `#pick-crosshair`, `#pick-controls`, `#map-view.picking` | map view; exit hook at top of switchTab |
 | Haze circles (v0.17.0) | `HAZE_RADIUS_M`, `addHazeCircle`, `dotIcon`, `.aps-dot`, `.pin-haze` | replaces pinIcon; called from renderMarkers |
 | Access validation (v0.17.0) | `selectedAccess = null` + block in submitPlant | with location block |
+| Dark tokens (v0.18.0) | `:root` remapped --stone-100/200/300/500/700, --ink, plus --glass/--glass-border/--glow-amber | top of style block |
+| Firefly glow (v0.18.0) | `#splash::before` dual radial gradients, `@keyframes firefly-pulse`, motion-safe guards | splash CSS |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
@@ -455,6 +499,13 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     aesthetics — jitter is fabricated data (honest-states violation),
     and the stored coordinate is already public via the API, so the
     honest circle leaks nothing new.
+17. **The map is off-limits during dark-theme work.** #leaflet-map,
+    L.circle rendering, addHazeCircle, access opacity tiers, and all
+    popup styling are NOT touched when implementing dark surfaces.
+    backdrop-filter is NEVER applied over the map (Leaflet pan/zoom +
+    blur destroys framerate on mid-range Android). The map keeps its
+    appearance until a deliberate dark-tuning pass; the rule prevents
+    accidental map changes bleeding in from a surface remap.
 
 ## Validate-after-edit checklist — skip none
 
@@ -541,6 +592,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - ✅ Haze (v0.17.0): point-pins replaced by honest 75 m circles
   (tripwire 16) + center dots, access sets prominence (public/ask/
   private tiers), treasure-hunt copy on public popups only, access now
-  a required explicit choice. DB research slides to v0.18.0.
+  a required explicit choice.
+- ✅ Dark theme (v0.18.0): semantic surface-token remap (--stone-100 →
+  near-black forest #14211A, --ink → warm off-white, plus --glass/
+  --glow-amber), frosted glass cards (feed/score/sheets), firefly glow
+  on splash with motion-safe pulse, Fraunces + DM Sans unchanged.
+  Tripwire 17: map deliberately untouched. DB research at v0.19.0.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

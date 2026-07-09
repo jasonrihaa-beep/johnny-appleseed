@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1C2B1E">
+<meta name="theme-color" content="#14211A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Johnny Appleseed</title>
@@ -31,12 +31,16 @@
   --gold-400:  #F4A127;
   --gold-200:  #FAD08A;
   --gold-100:  #FEF0CC;
-  --stone-100: #FAFDF7;
-  --stone-200: #F0F4EE;
-  --stone-300: #E2E8DF;
-  --stone-500: #8A9988;
-  --stone-700: #4A5549;
-  --ink:       #1C2B1E;
+  /* v0.18.0 dark surface remap — semantic tokens only, raw scales unchanged */
+  --stone-100: #14211A;  /* near-black forest (was warm white) */
+  --stone-200: #1C2B22;  /* raised surface (was pale) */
+  --stone-300: rgba(122,153,136,0.22); /* sage border (was solid) */
+  --stone-500: #8FA398;  /* dimmed sage text (was darker muted) */
+  --stone-700: #C3D2C8;  /* light sage secondary text (was dark secondary) */
+  --ink:       #F5F1E8;  /* warm off-white (was near-black) */
+  --glass:     rgba(28,43,34,0.72);
+  --glass-border: rgba(245,241,232,0.14);
+  --glow-amber: rgba(244,161,39,0.22);
   --red-700:   #B91C1C;
   --red-200:   #FECACA;
   --red-50:    #FEF2F2;
@@ -441,7 +445,10 @@ body.tab-map #map-view {
   transform: translateX(-50%);
   width: 100%;
   max-width: 480px;
-  background: var(--stone-100);
+  /* v0.18.0 frosted glass */
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 16px 16px 0 0;
   padding: 16px 16px calc(16px + var(--safe-bottom));
   z-index: 1101;
@@ -626,6 +633,13 @@ body.tab-map #map-view {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* v0.18.0 frosted glass (NON-map surface) */
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  margin: 0 12px 12px;
 }
 
 .post-header {
@@ -700,7 +714,7 @@ body.tab-map #map-view {
   left: 0;
   right: 0;
   z-index: 50;
-  background: white;
+  background: var(--stone-200); /* v0.18.0 raised on dark */
   border: 1px solid var(--stone-300);
   border-radius: 10px;
   margin-top: 4px;
@@ -863,7 +877,7 @@ body.tab-map #map-view {
   padding: 11px 14px;
   border: 1px solid var(--stone-300);
   border-radius: 10px;
-  background: white;
+  background: var(--stone-200); /* v0.18.0 raised on dark */
   font-size: 15px;
   color: var(--ink);
   font-family: var(--font-sans);
@@ -990,12 +1004,15 @@ body.tab-map #map-view {
 
 /* Plant Score Preview */
 #score-preview {
-  border: 1px solid var(--stone-300);
-  border-radius: 12px;
   padding: 16px;
-  background: white;
   margin-bottom: 20px;
   display: none;
+  /* v0.18.0 frosted glass */
+  background: var(--glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
 }
 
 #score-preview.visible { display: block; }
@@ -1492,7 +1509,7 @@ body.tab-map #map-view {
 #splash {
   position: fixed;
   inset: 0;
-  background: var(--green-900);
+  background: var(--stone-100);
   z-index: 500;
   display: flex;
   flex-direction: column;
@@ -1503,6 +1520,18 @@ body.tab-map #map-view {
   transition: opacity 0.4s, transform 0.4s;
 }
 #splash.hidden { opacity: 0; pointer-events: none; transform: scale(0.98); }
+
+/* v0.18.0 firefly glow — ambient radial gradients behind the content */
+#splash::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle 420px at 50% 35%, var(--glow-amber), transparent 70%),
+    radial-gradient(circle 240px at 62% 48%, var(--glow-amber), transparent 75%);
+  pointer-events: none;
+}
 
 .splash-mark {
   width: 72px;
@@ -1515,6 +1544,16 @@ body.tab-map #map-view {
   margin: 0 auto 28px;
 }
 .splash-mark svg { width: 40px; height: 40px; stroke: var(--gold-400); fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+/* v0.18.0 subtle glow pulse (motion-safe) */
+@media (prefers-reduced-motion: no-preference) {
+  .splash-mark { animation: firefly-pulse 5s ease-in-out infinite; }
+}
+.splash-mark { box-shadow: 0 0 24px rgba(244,161,39,0.18); }
+
+@keyframes firefly-pulse {
+  0%, 100% { box-shadow: 0 0 24px rgba(244,161,39,0.18); }
+  50% { box-shadow: 0 0 32px rgba(244,161,39,0.28), 0 0 48px rgba(244,161,39,0.12); }
+}
 
 .splash-title {
   font-family: var(--font-serif);
@@ -1524,7 +1563,14 @@ body.tab-map #map-view {
   margin-bottom: 6px;
   letter-spacing: -0.3px;
 }
-.splash-title em { color: var(--gold-400); font-style: italic; }
+.splash-title em {
+  color: var(--gold-400);
+  font-style: italic;
+  text-shadow: 0 0 16px rgba(244,161,39,0.3);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .splash-title em { animation: firefly-pulse 5s ease-in-out infinite; }
+}
 
 .splash-tagline {
   font-size: 15px;
@@ -1917,7 +1963,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.17.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.18.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
