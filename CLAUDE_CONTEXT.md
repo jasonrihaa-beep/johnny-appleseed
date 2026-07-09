@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.14.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.15.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -194,6 +194,41 @@ Written for the agent, not for humans.
    BELOW the autocomplete dropdown (`#plant-suggest`, z 50), and far
    below the action sheet (z 1100/1101). Never raise the dropdown.
 
+## Photo design decisions (final — from PHOTO_SPEC.md, v0.15.0)
+
+1. **Client-side compression is mandatory:** canvas downscale to max
+   1280px longest edge, JPEG quality 0.82, before upload
+   (`compressPhoto()`). Free-tier storage math depends on it.
+2. **Upload path:** `plant-photos/{auth.uid()}/{crypto.randomUUID()}.jpg`
+   — filename independent of plant id, upload BEFORE insert, photo_url
+   in the single insert. Insert fails after upload → best-effort
+   storage remove in the error branch.
+3. **Photos never block a log:** any upload failure → toast +
+   confirm-continue sheet offering log-without-photo. Same philosophy
+   as the GPS fallback. `closeSheet()` resolves a pending photo-confirm
+   as Cancel (no hung promise on backdrop dismiss).
+4. **Fallback is a SINGLE universal botanical line-art SVG placeholder**
+   (`#photo-placeholder-sprig` symbol) — visibly an illustration
+   (stroke 1.6, stone-500 on green-50), generic sprig, aria-label
+   "Illustration — no photo yet". Must NOT appear to depict the
+   specific species (honest-states). Per-plant sketch library is a
+   separate asset-lane project; render order once it exists:
+   user photo → per-plant sketch → placeholder.
+5. **photo_url rendered escaped; images lazy** (`loading="lazy"`),
+   object-fit cover, fixed aspect container (no layout shift). Feed:
+   4:3; popup: fixed 110px strip, no placeholder in popups (omit).
+6. **Own-plant delete does best-effort storage remove** of its photo
+   (orphaned files otherwise accepted, documented). Delete path
+   (`confirmDeletePlant`/`doDeletePlant`) was CREATED in v0.15.0 — it
+   had been referenced by the card sheet since S4c but never defined
+   (dead button, found during this build).
+7. **Sign-in caption** under the setup sheet's Google button, exact
+   text "Your garden stays yours on any device. Without it, your
+   plants live only in this browser." Both clauses literally true.
+8. **photo_url key is omitted from the insert when no photo** —
+   logging keeps working even if the photo_url column migration is
+   not yet applied dashboard-side.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -239,6 +274,11 @@ Written for the agent, not for humans.
 | Profile hero (dynamic) | `id="profile-avatar"`, `id="profile-name-display"` | profile view |
 | Email upgrade row | `id="email-upgrade-row"` | settings, above AI key |
 | Sticky submit bar (v0.14.0) | `id="submit-bar"` (last child of #plant-view, z 49) + desktop scrollbar `@media (hover: hover) and (pointer: fine)` | wraps #submit-plant-btn; CSS after .submit-btn |
+| Photo picker (v0.15.0) | `id="plant-photo-input"`, `#photo-picker`, `onPhotoPick`, `removePhoto` | plant form, below Note |
+| Photo compress + upload | `compressPhoto`, `confirmLogWithoutPhoto`, `resolvePhotoContinue` | before submitPlant |
+| Photo placeholder symbol | `#photo-placeholder-sprig` (svg symbol) + `.post-photo`/`.pin-photo` CSS | top of body; CSS after submit-bar |
+| Plant delete + photo hygiene | `confirmDeletePlant`, `doDeletePlant` | before openCommentSheet |
+| Sign-in caption | `.google-caption` | inside openSetupSheet googleBlock |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
@@ -409,5 +449,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   the bottom of the Plant form (sticky never fixed — tripwire 14), fade
   scrim above it, slim brand scrollbar for fine-pointer devices (touch
   keeps hidden scrollbars).
+- ✅ Photos / S2.5 (v0.15.0): photo picker on the Plant form, client
+  compression (1280px / q0.82) → Storage `plant-photos` bucket
+  (dashboard-created), photo on feed cards (4:3) + pin popups (110px
+  strip), universal sprig placeholder (honest illustration), delete
+  hygiene, sign-in caption. Per-plant sketch library = pending asset
+  lane. Own-plant delete path created (was a dead reference since S4c).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

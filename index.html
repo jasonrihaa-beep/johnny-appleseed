@@ -1094,6 +1094,80 @@ body.tab-map #map-view {
   pointer-events: none;
 }
 
+/* v0.15.0 photo picker + preview */
+#plant-photo-input { display: none; }
+#photo-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1.5px dashed var(--stone-300);
+  border-radius: 10px;
+  background: var(--green-50);
+  color: var(--stone-700);
+  font-size: 14px;
+  cursor: pointer;
+}
+#photo-picker svg { width: 18px; height: 18px; stroke: var(--green-700); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#photo-preview-wrap { display: none; position: relative; }
+#photo-preview-wrap.visible { display: block; }
+#photo-preview-img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+}
+#photo-remove-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(28,43,30,0.72);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#photo-remove-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+
+/* v0.15.0 feed photo — fixed aspect container, no layout shift */
+.post-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  margin: 10px 0 2px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--green-50);
+}
+.post-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.post-photo.placeholder { display: flex; align-items: center; justify-content: center; }
+.post-photo-ph { width: 52px; height: 52px; stroke: var(--stone-500); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* v0.15.0 pin popup thumb — fixed height, Leaflet needs no reflow handling */
+.pin-photo {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  margin: 6px 0 2px;
+}
+
+/* v0.15.0 sign-in caption (setup sheet, under Continue with Google) */
+.google-caption {
+  font-size: 11.5px;
+  color: var(--stone-500);
+  text-align: center;
+  line-height: 1.55;
+  margin: 8px 2px 0;
+}
+
 /* ── PROFILE VIEW ── */
 #profile-view { padding: 24px 20px 32px; }
 
@@ -1414,6 +1488,17 @@ body.tab-map #map-view {
 </head>
 <body>
 
+<!-- v0.15.0 universal photo placeholder — a generic sprig, visibly an
+     illustration, deliberately species-neutral (honest-states) -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="photo-placeholder-sprig" viewBox="0 0 48 48">
+    <path d="M24 41V21"/>
+    <path d="M24 30c-6.5-.5-10.5-4.5-11.5-11 6.5.5 10.5 4.5 11.5 11z"/>
+    <path d="M24 24c6.5-.5 10.5-4.5 11.5-11-6.5.5-10.5 4.5-11.5 11z"/>
+    <path d="M17 41h14"/>
+  </symbol>
+</svg>
+
 <!-- SPLASH -->
 <div id="splash">
   <div class="splash-mark">
@@ -1555,6 +1640,22 @@ body.tab-map #map-view {
         <input class="form-input" id="plant-note" type="text" placeholder="Soil prep, method, observations..." maxlength="255">
       </div>
 
+      <!-- v0.15.0 photo picker — no upload at selection time; compress + upload happen in submitPlant -->
+      <div class="form-group">
+        <label class="form-label" for="plant-photo-input">Photo (optional)</label>
+        <label id="photo-picker" for="plant-photo-input">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Add a photo
+        </label>
+        <input type="file" id="plant-photo-input" accept="image/*" onchange="onPhotoPick(this)">
+        <div id="photo-preview-wrap">
+          <img id="photo-preview-img" alt="Photo preview">
+          <button type="button" id="photo-remove-btn" aria-label="Remove photo" onclick="removePhoto()">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
       <!-- Score Preview -->
       <div id="score-preview">
         <div class="score-header">
@@ -1684,7 +1785,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.14.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.15.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -2007,6 +2108,8 @@ function dbPinPopupHtml(row) {
     ? ' &middot; Community ID &mdash; verify before harvesting.' : '';
   return `<strong>${esc(row.plant_name)}</strong>` +
     (row.sci ? `<span class="pin-sci">${esc(row.sci)}</span>` : '') +
+    // Photo only — no placeholder in popups (space-constrained; omit instead)
+    (row.photo_url ? `<img class="pin-photo" src="${esc(row.photo_url)}" alt="${esc(row.plant_name)}" loading="lazy">` : '') +
     `<span class="pin-meta">${isFind ? 'Found by' : 'by'} ${author}${caution}</span>` +
     (row.note ? `<span class="pin-note">${esc(row.note)}</span>` : '') +
     `<div class="pin-badges">` +
@@ -2304,6 +2407,75 @@ function getLogLocation() {
   });
 }
 
+/* ── v0.15.0 PHOTO: pick → compress → upload (never blocks a log) ── */
+let selectedPhotoFile = null;
+let photoPreviewUrl = null;
+
+function onPhotoPick(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  if (!f.type.startsWith('image/')) { showToast('Choose an image file'); input.value = ''; return; }
+  selectedPhotoFile = f;
+  if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+  photoPreviewUrl = URL.createObjectURL(f);
+  document.getElementById('photo-preview-img').src = photoPreviewUrl;
+  document.getElementById('photo-preview-wrap').classList.add('visible');
+  document.getElementById('photo-picker').style.display = 'none';
+}
+
+function removePhoto() {
+  selectedPhotoFile = null;
+  if (photoPreviewUrl) { URL.revokeObjectURL(photoPreviewUrl); photoPreviewUrl = null; }
+  document.getElementById('plant-photo-input').value = '';
+  document.getElementById('photo-preview-img').removeAttribute('src');
+  document.getElementById('photo-preview-wrap').classList.remove('visible');
+  document.getElementById('photo-picker').style.display = 'flex';
+}
+
+// Canvas downscale to max 1280px longest edge, JPEG q0.82 —
+// free-tier storage math depends on this (decision 1)
+function compressPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * scale);
+      const h = Math.round(img.naturalHeight * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Could not process photo')), 'image/jpeg', 0.82);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read photo')); };
+    img.src = url;
+  });
+}
+
+// Upload failed → offer to log without the photo. Resolves false on any
+// dismissal path (closeSheet resolves the pending promise — see below).
+let photoContinueResolve = null;
+function confirmLogWithoutPhoto() {
+  return new Promise(resolve => {
+    photoContinueResolve = resolve;
+    const sheet = document.getElementById('action-sheet');
+    sheet.innerHTML = `
+      <div class="sheet-title">The photo could not be uploaded.<br>Log it without the photo?</div>
+      <button class="sheet-btn" onclick="resolvePhotoContinue(true)">Log without photo</button>
+      <button class="sheet-btn cancel" onclick="resolvePhotoContinue(false)">Cancel</button>`;
+    document.getElementById('action-sheet-backdrop').classList.add('open');
+    sheet.classList.add('open');
+  });
+}
+function resolvePhotoContinue(goOn) {
+  const r = photoContinueResolve;
+  photoContinueResolve = null;
+  closeSheet();
+  if (r) r(goOn);
+}
+
 async function submitPlant() {
   const name = document.getElementById('plant-name').value.trim();
   if (!name) { showToast('Enter a plant name first'); return; }
@@ -2319,8 +2491,29 @@ async function submitPlant() {
     const sc = (p && selectedKind !== 'discovered') ? plantScore(p) : null;
     const tags = selectedType === 'both' ? ['edible','wildlife','pollinator'] : [selectedType];
     const note = document.getElementById('plant-note').value.trim() || null;
+    // v0.15.0 photo: compress + upload BEFORE the insert (decision 2);
+    // any failure offers log-without-photo — never blocks (decision 3)
+    let photoUrl = null;
+    let photoPath = null;
+    if (selectedPhotoFile) {
+      try {
+        const blob = await compressPhoto(selectedPhotoFile);
+        const session = await ensureAuth(); // returns the existing session
+        photoPath = session.user.id + '/' + crypto.randomUUID() + '.jpg';
+        const { error: upErr } = await sb.storage.from('plant-photos')
+          .upload(photoPath, blob, { contentType: 'image/jpeg' });
+        if (upErr) throw upErr;
+        photoUrl = sb.storage.from('plant-photos').getPublicUrl(photoPath).data.publicUrl;
+      } catch (upErr) {
+        showToast(upErr.message || 'Photo upload failed');
+        photoUrl = null;
+        photoPath = null;
+        const goOn = await confirmLogWithoutPhoto();
+        if (!goOn) return;
+      }
+    }
     // user_id comes from the DB default (auth.uid()) — NEVER send it from the client
-    const { error } = await sb.from('plants').insert({
+    const fields = {
       plant_name: name,
       sci: p ? p.sci : null,
       tags: tags,
@@ -2331,11 +2524,23 @@ async function submitPlant() {
       note: note,
       access: selectedAccess,
       kind: selectedKind
-    });
-    if (error) { showToast(error.message); return; }
+    };
+    // Key omitted when no photo — logging keeps working even if the
+    // photo_url column migration hasn't been applied yet
+    if (photoUrl) fields.photo_url = photoUrl;
+    const { error } = await sb.from('plants').insert(fields);
+    if (error) {
+      // Insert failed after a successful upload → best-effort remove (decision 2)
+      if (photoPath) {
+        try { await sb.storage.from('plant-photos').remove([photoPath]); } catch (rmErr) {}
+      }
+      showToast(error.message);
+      return;
+    }
     showToast(name + ' logged. Thank you for planting.');
     document.getElementById('plant-name').value = '';
     document.getElementById('plant-note').value = '';
+    removePhoto();
     document.getElementById('score-preview').classList.remove('visible');
     loadDbPins();
     loadFeed();
@@ -2484,6 +2689,9 @@ async function loadFeed() {
             <svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
           </button>
         </div>` +
+        (row.photo_url
+          ? `<div class="post-photo"><img src="${esc(row.photo_url)}" alt="${esc(row.plant_name)}" loading="lazy"></div>`
+          : `<div class="post-photo placeholder"><svg class="post-photo-ph" role="img" aria-label="Illustration &mdash; no photo yet"><use href="#photo-placeholder-sprig"/></svg></div>`) +
         (row.note ? `<p class="post-body">${esc(row.note)}</p>` : '') +
         `<div style="display:flex;gap:6px;flex-wrap:wrap">
           <div class="post-plant-tag${tagCls}">
@@ -2743,6 +2951,8 @@ function closeSheet() {
   document.getElementById('action-sheet-backdrop').classList.remove('open');
   document.getElementById('action-sheet').classList.remove('open');
   sheetActions = [];
+  // v0.15.0: dismissing the photo-confirm sheet by any path counts as Cancel
+  if (photoContinueResolve) { photoContinueResolve(false); photoContinueResolve = null; }
 }
 
 function openCardSheet(btn) {
@@ -2759,6 +2969,39 @@ function openCardSheet(btn) {
       { label: 'Report', handler: () => openReportSheet('plant', plantId) },
       { label: 'Block planter', danger: true, handler: () => confirmBlock(author) }
     ]);
+  }
+}
+
+// v0.15.0: this pair was referenced by the card sheet but never defined —
+// own-plant delete now exists, with best-effort photo hygiene (decision 6)
+function confirmDeletePlant(plantId) {
+  openSheet(
+    [{ label: 'Delete planting', danger: true, handler: () => doDeletePlant(plantId) }],
+    'Delete this planting? This cannot be undone.'
+  );
+}
+
+async function doDeletePlant(plantId) {
+  if (!sb || !myUserId) return;
+  try {
+    // .select() returns the deleted row — one call, and photo_url comes back with it
+    const { data, error } = await sb.from('plants')
+      .delete().eq('id', plantId).select('photo_url');
+    if (error) throw error;
+    // Best-effort storage remove; orphaned files otherwise accepted (decision 6)
+    const url = data && data[0] && data[0].photo_url;
+    if (url && url.includes('/plant-photos/')) {
+      const path = decodeURIComponent(url.split('/plant-photos/')[1] || '');
+      if (path) {
+        sb.storage.from('plant-photos').remove([path])
+          .then(({ error: rmErr }) => { if (rmErr) console.log('photo remove failed:', rmErr.message); });
+      }
+    }
+    showToast('Planting deleted');
+    loadDbPins();
+    loadFeed();
+  } catch (e) {
+    showToast(e.message || 'Could not delete');
   }
 }
 
@@ -3038,7 +3281,8 @@ function openSetupSheet(title, body, prefillName, hideGoogle) {
     <button class="google-btn" onclick="setupSheetGoogle()">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.2A8.5 8.5 0 1 1 18 6"/><path d="M21 12h-9"/></svg>
       Continue with Google
-    </button>`;
+    </button>
+    <p class="google-caption">Your garden stays yours on any device. Without it, your plants live only in this browser.</p>`;
   sheet.innerHTML = `
     <div class="sheet-title"><strong>${t}</strong><br>${b}</div>
     <input class="form-input" id="setup-name" type="text" maxlength="40" value="${esc(current)}" autocomplete="off">
