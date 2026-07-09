@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.13.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.14.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -173,6 +173,27 @@ Written for the agent, not for humans.
 7. **First-log setup sheet fires on the first successful log of EITHER
    kind** — unchanged.
 
+## Reachable design decisions (final — from REACHABLE_SPEC.md, v0.14.0)
+
+1. **No "keep scrolling" text or arrow.** An affordance that instructs
+   work is weaker than removing the work: the primary action is pinned
+   instead.
+2. **Sticky, never fixed** (tripwire 14). The submit bar uses
+   `position: sticky` inside the `#content` scroll container.
+   `position: fixed` is displaced by the mobile soft keyboard and will
+   jump over the input being typed in. Any future bottom-pinned control
+   follows this rule.
+3. **Hidden scrollbars stay on touch** (native app feel, original design
+   intent). Fine-pointer devices (`@media (hover: hover) and
+   (pointer: fine)`) get a slim `--stone-300` scrollbar — desktop users
+   read a scrollbar as the signal that content continues.
+4. **Non-destructive:** `#submit-plant-btn` keeps its id, class, and
+   onclick. `selectKind()` swaps its textContent between "Log this
+   planting" and "Log this find" — that wiring works untouched.
+5. **Layering:** the bar (z 49) sits above form fields but strictly
+   BELOW the autocomplete dropdown (`#plant-suggest`, z 50), and far
+   below the action sheet (z 1100/1101). Never raise the dropdown.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -217,6 +238,7 @@ Written for the agent, not for humans.
 | S4a email upgrade | `startEmailUpgrade`, `renderEmailRow`, `bumpLogCount` | after identity |
 | Profile hero (dynamic) | `id="profile-avatar"`, `id="profile-name-display"` | profile view |
 | Email upgrade row | `id="email-upgrade-row"` | settings, above AI key |
+| Sticky submit bar (v0.14.0) | `id="submit-bar"` (last child of #plant-view, z 49) + desktop scrollbar `@media (hover: hover) and (pointer: fine)` | wraps #submit-plant-btn; CSS after .submit-btn |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
@@ -310,6 +332,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     kind (`.kind-option`). Kind styling mirrors tag-option via
     DUPLICATED CSS rules; class sharing is forbidden — sharing would let
     any selector clear another group's selection.
+14. **Sticky, never fixed, for bottom-pinned controls.** `#submit-bar`
+    uses `position: sticky` inside the `#content` scroll container.
+    `position: fixed` is displaced by the mobile soft keyboard and will
+    jump over the input being typed in. Any future bottom-pinned control
+    follows this rule.
 
 ## Validate-after-edit checklist — skip none
 
@@ -378,5 +405,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   PLANT_DB identity line + safety captions, Found chip on feed cards,
   "Found by" popup bylines. plants.kind migration lives as a schema.sql
   appendix ("-- v0.13.0 MIGRATION"), applied dashboard-side.
+- ✅ Reachable (v0.14.0): sticky submit bar pins the primary action at
+  the bottom of the Plant form (sticky never fixed — tripwire 14), fade
+  scrim above it, slim brand scrollbar for fine-pointer devices (touch
+  keeps hidden scrollbars).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

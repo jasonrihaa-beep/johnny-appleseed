@@ -1072,6 +1072,28 @@ body.tab-map #map-view {
 .submit-btn:active { transform: scale(0.99); }
 .submit-btn:disabled { background: var(--stone-300); color: var(--stone-500); cursor: not-allowed; }
 
+/* v0.14.0 sticky submit bar — sticky inside #content, never fixed (tripwire 14:
+   fixed is displaced by the mobile soft keyboard) */
+#submit-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 49; /* one below #plant-suggest (50); far below action sheet (1100/1101) */
+  background: var(--stone-100);
+  margin: 0 -20px; /* cancels #plant-view's 20px side padding — full-width bar */
+  padding: 12px 20px calc(12px + var(--safe-bottom));
+}
+/* fade scrim — visual-only signal that content continues under the bar */
+#submit-bar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 24px;
+  background: linear-gradient(to top, var(--stone-100), transparent);
+  pointer-events: none;
+}
+
 /* ── PROFILE VIEW ── */
 #profile-view { padding: 24px 20px 32px; }
 
@@ -1371,8 +1393,23 @@ body.tab-map #map-view {
   line-height: 1.6;
 }
 
-/* scrollbar */
+/* scrollbar — hidden by default (touch: native app feel) */
 #content::-webkit-scrollbar { width: 0; }
+
+/* v0.14.0 desktop: slim brand scrollbar — fine-pointer users read it as
+   the signal that content continues */
+@media (hover: hover) and (pointer: fine) {
+  #content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--stone-300) transparent;
+  }
+  #content::-webkit-scrollbar { width: 8px; }
+  #content::-webkit-scrollbar-thumb {
+    background: var(--stone-300);
+    border-radius: 4px;
+  }
+  #content::-webkit-scrollbar-track { background: transparent; }
+}
 </style>
 </head>
 <body>
@@ -1535,7 +1572,10 @@ body.tab-map #map-view {
 
       <p class="form-caption" id="found-caption" style="display:none">Community identification &mdash; verify before eating anything you find.</p>
 
-      <button class="submit-btn" id="submit-plant-btn" onclick="submitPlant()">Log this planting</button>
+      <!-- v0.14.0 sticky submit bar — the primary action never hides -->
+      <div id="submit-bar">
+        <button class="submit-btn" id="submit-plant-btn" onclick="submitPlant()">Log this planting</button>
+      </div>
     </div>
 
     <!-- PROFILE VIEW -->
@@ -1644,7 +1684,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.13.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.14.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
