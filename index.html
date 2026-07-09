@@ -270,16 +270,17 @@ body.tab-map #map-view {
   line-height: 1.7;
 }
 
-/* Custom Leaflet divIcon pin */
-.aps-pin { background: none; border: none; }
-.aps-pin svg {
-  width: 28px;
-  height: 34px;
-  filter: drop-shadow(0 2px 3px rgba(28,43,30,0.25));
-  transition: transform 0.15s;
-  transform-origin: bottom center;
+/* v0.17.0 haze center dot (divIcon) — the circle itself is an L.circle */
+.aps-dot { background: none; border: none; }
+
+/* v0.17.0 haze popup copy */
+.leaflet-popup-content .pin-haze {
+  display: block;
+  font-size: 11.5px;
+  color: var(--stone-500);
+  margin-top: 4px;
+  line-height: 1.45;
 }
-.aps-pin:hover svg { transform: scale(1.12); }
 
 /* Map filter bar */
 #map-filter {
@@ -1265,6 +1266,9 @@ body.tab-map #map-view {
 #map-view.picking #pick-controls { display: flex; }
 #map-view.picking #plant-fab { display: none; }
 #map-view.picking #map-filter { display: none; }
+/* v0.17.0: haze circles/dots never intercept taps while picking —
+   events fall through to the map (panning unaffected) */
+#map-view.picking .leaflet-interactive { pointer-events: none; }
 
 /* ── PROFILE VIEW ── */
 #profile-view { padding: 24px 20px 32px; }
@@ -1758,7 +1762,7 @@ body.tab-map #map-view {
         <div class="tag-row">
           <button class="tag-option access-option" onclick="selectAccess(this,'public')">Open spot</button>
           <button class="tag-option access-option" onclick="selectAccess(this,'ask')">Ask first</button>
-          <button class="tag-option access-option selected" onclick="selectAccess(this,'private')">My yard</button>
+          <button class="tag-option access-option" onclick="selectAccess(this,'private')">My yard</button>
         </div>
         <p class="form-caption">Open spots mean parks, parkways, and community gardens &mdash; where planting is permitted.</p>
       </div>
@@ -1913,7 +1917,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.16.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.17.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -1976,7 +1980,7 @@ const sb = (typeof supabase !== 'undefined')
   : null;
 
 let selectedType = 'wildlife';   // matches default-selected Type button
-let selectedAccess = 'private';  // safe default — see schema.sql
+let selectedAccess = null;  // v0.17.0: REQUIRED explicit choice (decision 5); DB default 'private' stays as schema backstop
 let selectedKind = 'planted';    // v0.13.0: 'planted' | 'discovered'
 let dbPlants = [];               // community plants fetched from Supabase
 let dbPinAuthors = {};           // user_id -> display_name for popup bylines
@@ -2156,21 +2160,41 @@ function pinType(tags) {
   return tags[0];
 }
 
-function pinIcon(type, openAccess) {
-  const color = PIN_COLORS[type] || PIN_COLORS.both;
-  // Open-harvest (access='public') pins get a gold ring
-  const ring = openAccess ? '#F4A127' : 'white';
-  const ringW = openAccess ? '2' : '1.5';
-  const inner = type === 'wildlife' || type === 'pollinator'
-    ? '<path d="M14 8v8M10 12h8" stroke="white" stroke-width="1.5" stroke-linecap="round"/>'
-    : '<circle cx="14" cy="12" r="4" fill="white" opacity="0.9"/>';
+/* ── v0.17.0 HAZE: the circle IS the data (tripwire 16) ──
+   75 m = the computed rounding-cell extent at ~29.5°N (±55 m lat,
+   ±48 m lng, corner ≈ 74 m), centered on the stored coordinate.
+   NEVER jittered, never randomized, never resized for aesthetics. */
+const HAZE_RADIUS_M = 75;
+
+function dotIcon(color, small) {
+  const s = small ? 9 : 14;
   return L.divIcon({
-    className: 'aps-pin',
-    html: `<svg viewBox="0 0 28 34" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2C8.48 2 4 6.48 4 12c0 7.5 10 20 10 20s10-12.5 10-20c0-5.52-4.48-10-10-10z" fill="${color}" stroke="${ring}" stroke-width="${ringW}"/>${inner}</svg>`,
-    iconSize: [28, 34],
-    iconAnchor: [14, 34],
-    popupAnchor: [0, -30]
+    className: 'aps-dot',
+    html: `<span style="display:block;width:${s}px;height:${s}px;border-radius:50%;background:${color};border:1.5px solid white;box-shadow:0 1px 3px rgba(28,43,30,0.3)"></span>`,
+    iconSize: [s, s],
+    iconAnchor: [s / 2, s / 2],
+    popupAnchor: [0, -8]
   });
+}
+
+// One rendering path for every pin (decision 6). TYPE keeps color,
+// ACCESS sets prominence; the old gold Open-harvest ring lives on as
+// the public-tier stroke. Circle and dot share the popup — both tappable.
+function addHazeCircle(lat, lng, type, access, popupHtml) {
+  const typeColor = PIN_COLORS[type] || PIN_COLORS.both;
+  const isPrivate = access === 'private';
+  const stroke = isPrivate ? '#8A9988' : (access === 'public' ? '#F4A127' : typeColor);
+  const fillOp = access === 'public' ? 0.25 : (isPrivate ? 0.08 : 0.15);
+  const circle = L.circle([lat, lng], {
+    radius: HAZE_RADIUS_M,
+    color: stroke,
+    weight: access === 'public' ? 2 : 1.5,
+    fillColor: isPrivate ? '#8A9988' : typeColor,
+    fillOpacity: fillOp
+  }).addTo(map).bindPopup(popupHtml);
+  const dot = L.marker([lat, lng], { icon: dotIcon(isPrivate ? '#8A9988' : typeColor, isPrivate) })
+    .addTo(map).bindPopup(popupHtml);
+  markers.push(circle, dot);
 }
 
 function initMap() {
@@ -2199,17 +2223,16 @@ function renderMarkers(filter) {
   currentFilter = filter;
   markers.forEach(m => map.removeLayer(m));
   markers = [];
-  // Demo pins (PIN_SPOTS): no access data, so the 'open' filter hides them
+  // Demo pins (PIN_SPOTS): no access data, so the 'open' filter hides them;
+  // circle rendering at the ask-tier neutral treatment (decision 6)
   PIN_SPOTS.forEach(spot => {
     const p = dbFind(spot.db);
     if (!p) return;
     const show = filter === 'all' || filter === 'near' || (p.tags || []).includes(filter);
     if (!show) return;
     const sc = plantScore(p);
-    const m = L.marker([spot.lat, spot.lng], { icon: pinIcon(pinType(p.tags)) })
-      .addTo(map)
-      .bindPopup(`<strong>${p.n}</strong><span class="pin-meta">Example &mdash; ${p.note} &middot; </span><span class="pin-score">Score ${sc.score}</span>`);
-    markers.push(m);
+    addHazeCircle(spot.lat, spot.lng, pinType(p.tags), 'ask',
+      `<strong>${p.n}</strong><span class="pin-meta">Example &mdash; ${p.note} &middot; </span><span class="pin-score">Score ${sc.score}</span>`);
   });
   // Community pins from Supabase — user-generated text must be escaped
   dbPlants.forEach(row => {
@@ -2217,10 +2240,8 @@ function renderMarkers(filter) {
     const show = filter === 'all' || filter === 'near' ||
       (filter === 'open' ? row.access === 'public' : (row.tags || []).includes(filter));
     if (!show) return;
-    const m = L.marker([row.lat, row.lng], { icon: pinIcon(pinType(row.tags), row.access === 'public') })
-      .addTo(map)
-      .bindPopup(dbPinPopupHtml(row));
-    markers.push(m);
+    // Missing access on old cached rows gets the quietest tier (defensive)
+    addHazeCircle(row.lat, row.lng, pinType(row.tags), row.access || 'private', dbPinPopupHtml(row));
   });
 }
 
@@ -2243,8 +2264,16 @@ function dbPinPopupHtml(row) {
     `<div class="pin-badges">` +
       (row.access === 'public' ? `<span class="pin-chip">Open harvest</span>` : '') +
       (row.score != null ? `<span class="pin-score">Score ${row.score}</span>` : '') +
-    `</div>
-    <div class="pin-inspire-row">
+    `</div>` +
+    // v0.17.0 haze copy — treasure hunt ONLY on public (decision 3); the
+    // neighborhood-level line is a feature statement, not an apology (decision 4)
+    (row.access === 'public'
+      ? `<span class="pin-haze">Somewhere in this circle &mdash; happy hunting.</span>` +
+        `<span class="pin-haze">Locations are neighborhood-level for everyone's safety.</span>`
+      : (row.access || 'private') === 'private'
+        ? `<span class="pin-haze">Private yard &mdash; on the map, not on the menu.</span>`
+        : '') +
+    `<div class="pin-inspire-row">
       <button class="inspire-btn pin-inspire"
         data-plant="${esc(row.id)}" data-inspired="false" data-count="0"
         onclick="togglePinInspire(this)">
@@ -2734,6 +2763,12 @@ async function submitPlant() {
     // (publishing a pin with no location is meaningless; silence was the old bug)
     if (!logLoc) {
       showToast('Set a location first — use Refresh or Place on map in the Location row');
+      return;
+    }
+    // v0.17.0: access is a required explicit choice (decision 5) — the
+    // second of the only two legitimate blocks in this form
+    if (!selectedAccess) {
+      showToast('Choose who can reach it — pick an access level first');
       return;
     }
     await ensureAuth();

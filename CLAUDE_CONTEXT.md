@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.16.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.17.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -259,6 +259,37 @@ Written for the agent, not for humans.
 7. **No location = the one permitted submit block** — a pin without a
    location is meaningless; silence was the old bug.
 
+## Haze design decisions (final — from HAZE_SPEC.md, v0.17.0)
+
+1. **The circle IS the data** (tripwire 16). Radius 75 m = the computed
+   rounding-cell extent at ~29.5°N (±55 m lat, ±48 m lng, corner
+   ≈ 74 m), centered on the stored coordinate. NEVER jittered, never
+   randomized, never resized for aesthetics: jitter is fabricated data,
+   and the stored coordinate is already public via the API, so the
+   honest circle leaks nothing new.
+2. **Two encodings, no conflict:** TYPE keeps color (gold edible /
+   green wildlife / violet pollinator / green multi), ACCESS sets
+   prominence. public = full-color circle at 0.25 fill + gold stroke
+   (the old Open-harvest ring folded in); ask = 0.15 fill, type-color
+   stroke; private = stone-500 grey at 0.08 fill, smaller center dot —
+   visible, deliberately unenticing, still tappable.
+3. **Treasure copy ONLY on access='public' popups:** "Somewhere in this
+   circle — happy hunting." Private popups instead: "Private yard — on
+   the map, not on the menu." Inviting strangers to search near a
+   private yard is the exact harm the floor prevents. Ask-tier gets
+   neither line.
+4. **Owners see the same circle as strangers** — exact locations were
+   never stored anywhere, by design. Public popups state it as a
+   feature: "Locations are neighborhood-level for everyone's safety."
+5. **Access is a REQUIRED choice:** no preselected option, "Open spot"
+   first, submit blocked with a toast until chosen. Location + access
+   are the ONLY two legitimate submit blocks. DB default 'private'
+   stays as schema backstop; the client always sends an explicit value.
+6. **Example pins (PIN_SPOTS) use the same circle path** at the
+   ask-tier neutral treatment, keeping the "Example —" popup prefix.
+   One rendering path, no special cases. `pinIcon()` + `.aps-pin` CSS
+   were removed with the point-pin renderer in v0.17.0.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -312,6 +343,8 @@ Written for the agent, not for humans.
 | Location row (v0.16.0) | `id="location-row"`, `#loc-dot/-primary/-source`, `renderLocRow`, `logLoc` state | plant form, above access selector |
 | Location wrapper | `refreshLocation` (high-accuracy + classify), `useMapCenter`, `roundCoord` | where getLogLocation used to be |
 | Map pick mode | `startMapPick`/`confirmMapPick`/`cancelMapPick`, `#pick-crosshair`, `#pick-controls`, `#map-view.picking` | map view; exit hook at top of switchTab |
+| Haze circles (v0.17.0) | `HAZE_RADIUS_M`, `addHazeCircle`, `dotIcon`, `.aps-dot`, `.pin-haze` | replaces pinIcon; called from renderMarkers |
+| Access validation (v0.17.0) | `selectedAccess = null` + block in submitPlant | with location block |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
@@ -416,6 +449,12 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     explicit user tap on "Use map center". No fourth path may ever be
     added. (The pre-v0.16.0 `getLogLocation()` silent fallback is the
     cautionary tale — pins published at locations the user never saw.)
+16. **The circle IS the data.** Haze circles are radius 75 m (the
+    rounding-cell extent at ~29.5°N), centered on the stored
+    coordinate. NEVER jittered, never randomized, never resized for
+    aesthetics — jitter is fabricated data (honest-states violation),
+    and the stored coordinate is already public via the API, so the
+    honest circle leaks nothing new.
 
 ## Validate-after-edit checklist — skip none
 
@@ -499,5 +538,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   accuracy GPS with accuracy classification, map pick mode with
   crosshair + "Use this spot", explicit "Use map center" in failed
   state only. Silent map-center fallback removed — tripwire 15.
+- ✅ Haze (v0.17.0): point-pins replaced by honest 75 m circles
+  (tripwire 16) + center dots, access sets prominence (public/ask/
+  private tiers), treasure-hunt copy on public popups only, access now
+  a required explicit choice. DB research slides to v0.18.0.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
