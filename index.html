@@ -1168,6 +1168,104 @@ body.tab-map #map-view {
   margin: 8px 2px 0;
 }
 
+/* v0.16.0 location row — visible, sourced, manually placeable (tripwire 15) */
+#location-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  background: var(--stone-100);
+}
+#loc-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--stone-300);
+}
+#loc-dot.good { background: var(--green-600); }
+#loc-dot.warn { background: var(--gold-500); }
+#loc-dot.poor { background: var(--red-700); }
+#loc-texts { flex: 1; min-width: 0; }
+#loc-primary {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#loc-source { font-size: 11.5px; color: var(--stone-500); margin-top: 1px; }
+#loc-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.loc-btn {
+  padding: 6px 10px;
+  border-radius: 100px;
+  border: 1px solid var(--stone-300);
+  background: var(--stone-100);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--green-700);
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+}
+#loc-center-btn { margin-top: 8px; }
+
+/* v0.16.0 map pick mode — z below the action sheet (1100), above pills/FAB (1000) */
+#pick-crosshair {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1050;
+  pointer-events: none;
+  color: var(--green-700);
+}
+#pick-crosshair svg { width: 44px; height: 44px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+#pick-controls {
+  display: none;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+  align-items: center;
+  gap: 8px;
+}
+#pick-confirm {
+  padding: 12px 22px;
+  border-radius: 100px;
+  border: none;
+  background: var(--green-700);
+  color: var(--stone-100);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(28,43,30,0.25);
+}
+#pick-cancel {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--stone-300);
+  background: var(--stone-100);
+  color: var(--stone-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(28,43,30,0.18);
+}
+#pick-cancel svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+#map-view.picking #pick-crosshair { display: block; }
+#map-view.picking #pick-controls { display: flex; }
+#map-view.picking #plant-fab { display: none; }
+#map-view.picking #map-filter { display: none; }
+
 /* ── PROFILE VIEW ── */
 #profile-view { padding: 24px 20px 32px; }
 
@@ -1552,6 +1650,16 @@ body.tab-map #map-view {
       <button id="plant-fab" aria-label="Plant something here" onclick="switchTab('plant')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>
+      <!-- v0.16.0 pick mode — crosshair fixed at map center, map pans beneath -->
+      <div id="pick-crosshair" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/><circle cx="12" cy="12" r="3"/></svg>
+      </div>
+      <div id="pick-controls">
+        <button id="pick-confirm" onclick="confirmMapPick()">Use this spot</button>
+        <button id="pick-cancel" aria-label="Cancel placement" onclick="cancelMapPick()">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- FEED VIEW -->
@@ -1623,6 +1731,26 @@ body.tab-map #map-view {
           <button class="tag-option pollinator" onclick="selectTag(this,'pollinator')">Pollinators</button>
           <button class="tag-option both" onclick="selectTag(this,'both')">All of the above</button>
         </div>
+      </div>
+
+      <!-- v0.16.0 location row — location is never guessed silently (tripwire 15) -->
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <div id="location-row">
+          <span id="loc-dot" class="none"></span>
+          <div id="loc-texts">
+            <div id="loc-primary">No location yet</div>
+            <div id="loc-source">No location yet</div>
+          </div>
+          <div id="loc-actions">
+            <button type="button" class="loc-btn" onclick="refreshLocation()">Refresh</button>
+            <button type="button" class="loc-btn" onclick="startMapPick()">Place on map</button>
+          </div>
+        </div>
+        <button type="button" id="loc-center-btn" class="loc-btn" style="display:none" onclick="useMapCenter()">Use map center</button>
+        <p class="form-caption" id="loc-hint" style="display:none">Turn on precise location for Chrome, or place the pin on the map.</p>
+        <p class="form-caption" id="loc-found-hint" style="display:none">Log where you found it &mdash; place on the map if you're logging later.</p>
+        <p class="form-caption">Published at neighborhood precision (~100 m).</p>
       </div>
 
       <div class="form-group">
@@ -1785,7 +1913,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.15.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.16.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
@@ -2214,6 +2342,11 @@ function enterApp() {
 }
 
 function switchTab(tab) {
+  // v0.16.0: leaving the map by any route while picking exits pick mode cleanly
+  if (pickMode && tab !== 'map') {
+    pickMode = false;
+    document.getElementById('map-view').classList.remove('picking');
+  }
   activeTab = tab;
   VIEWS.forEach(v => {
     document.getElementById(v + '-view').classList.toggle('active', v === tab);
@@ -2231,6 +2364,9 @@ function switchTab(tab) {
     topbar.classList.remove('map-mode');
     document.body.classList.remove('tab-map');
   }
+  // v0.16.0: first Plant-tab visit requests a fix the user will SEE in the
+  // row — a visible classified fix, not a silent guess (tripwire 15)
+  if (tab === 'plant' && !logLoc && !locFetching) refreshLocation();
 }
 
 function setFilter(el, filter) {
@@ -2279,6 +2415,8 @@ function selectKind(el, kind) {
     caption.style.display = 'none';
     btn.textContent = 'Log this planting';
   }
+  // v0.16.0: manual placement is how finds get logged later, elsewhere (decision 4)
+  document.getElementById('loc-found-hint').style.display = kind === 'discovered' ? '' : 'none';
   // Re-evaluate the current input so the right panel renders
   const exact = dbFind(document.getElementById('plant-name').value.trim());
   if (exact) renderPlantFacts(exact);
@@ -2390,21 +2528,132 @@ async function ensureAuth() {
   return data.session;
 }
 
-// GPS with graceful fallback to map center — never block a log on permission
-function getLogLocation() {
-  return new Promise(resolve => {
-    const fallback = () => {
-      const c = map ? map.getCenter() : REGION_CENTER;
-      showToast('Using map location — GPS unavailable');
-      resolve({ lat: c.lat, lng: c.lng });
-    };
-    if (!navigator.geolocation) { fallback(); return; }
-    navigator.geolocation.getCurrentPosition(
-      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      fallback,
-      { timeout: 8000, maximumAge: 60000 }
-    );
-  });
+/* ── v0.16.0 LOCATION — never guessed silently (tripwire 15) ──
+   Every published coordinate is one of exactly three paths: a classified
+   GPS fix the user saw, a manual map placement, or an explicit tap on
+   "Use map center". The old silent map-center fallback is removed. */
+let logLoc = null;       // { lat, lng, accuracy|null, source: 'gps'|'manual'|'center' }
+let locFetching = false;
+
+function roundCoord(v) { return Math.round(v * 1000) / 1000; }
+
+// Neighborhood when inside the region box (same ±0.75° as the feed),
+// plus the rounded coords — what the user sees is what publishes (decision 2)
+function locPrimaryText(lat, lng) {
+  const coords = lat.toFixed(3) + ', ' + lng.toFixed(3);
+  const inBox = Math.abs(lat - REGION_CENTER.lat) <= 0.75 &&
+                Math.abs(lng - REGION_CENTER.lng) <= 0.75;
+  return inBox ? REGION.name + ' · ' + coords : coords;
+}
+
+function renderLocRow(state) {
+  const dot = document.getElementById('loc-dot');
+  const prim = document.getElementById('loc-primary');
+  const src = document.getElementById('loc-source');
+  const hint = document.getElementById('loc-hint');
+  const centerBtn = document.getElementById('loc-center-btn');
+  dot.className = 'none';
+  hint.style.display = 'none';
+  centerBtn.style.display = 'none';
+  if (state === 'fetching') {
+    prim.textContent = 'Finding your location…';
+    src.textContent = 'GPS';
+    return;
+  }
+  if (state === 'failed') {
+    dot.className = 'poor';
+    prim.textContent = 'No location yet';
+    src.textContent = 'No location yet';
+    hint.style.display = '';
+    centerBtn.style.display = '';
+    return;
+  }
+  if (!logLoc) { // 'none'
+    prim.textContent = 'No location yet';
+    src.textContent = 'No location yet';
+    return;
+  }
+  const rl = roundCoord(logLoc.lat), rg = roundCoord(logLoc.lng);
+  prim.textContent = locPrimaryText(rl, rg);
+  if (logLoc.source === 'manual') {
+    dot.className = 'good';
+    src.textContent = 'Placed manually';
+  } else if (logLoc.source === 'center') {
+    dot.className = 'warn';
+    src.textContent = 'Map center';
+  } else if (logLoc.accuracy <= 100) {
+    dot.className = 'good';
+    src.textContent = 'GPS ±' + Math.round(logLoc.accuracy) + 'm';
+  } else if (logLoc.accuracy <= 1000) {
+    dot.className = 'warn';
+    src.textContent = 'GPS ±' + Math.round(logLoc.accuracy) + 'm';
+  } else {
+    // Poor fix (Android approximate-permission territory): shown, never
+    // auto-accepted as final — nudge manual placement (decision 3)
+    dot.className = 'poor';
+    src.textContent = 'Approximate ±' + (logLoc.accuracy / 1000).toFixed(1) + ' km';
+    hint.style.display = '';
+  }
+}
+
+// Task 2 — high-accuracy wrapper. On any failure: NO coordinates are set
+// (tripwire 15); a prior fix, if one exists, is kept untouched.
+function refreshLocation() {
+  if (!navigator.geolocation) { renderLocRow(logLoc ? 'set' : 'failed'); return; }
+  if (locFetching) return;
+  locFetching = true;
+  renderLocRow('fetching');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      locFetching = false;
+      logLoc = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        source: 'gps'
+      };
+      renderLocRow('set');
+    },
+    () => {
+      locFetching = false;
+      if (logLoc) { showToast("Couldn't get a GPS fix"); renderLocRow('set'); }
+      else renderLocRow('failed');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+// Explicit, labeled choice — only offered in the row's failed state (decision 1)
+function useMapCenter() {
+  const c = map ? map.getCenter() : REGION_CENTER;
+  logLoc = { lat: c.lat, lng: c.lng, accuracy: null, source: 'center' };
+  renderLocRow('set');
+}
+
+/* Task 3 — map pick mode: crosshair fixed at map center, map pans beneath */
+let pickMode = false;
+
+function startMapPick() {
+  pickMode = true;
+  switchTab('map');
+  document.getElementById('map-view').classList.add('picking');
+}
+
+function confirmMapPick() {
+  const c = map ? map.getCenter() : REGION_CENTER;
+  logLoc = { lat: c.lat, lng: c.lng, accuracy: null, source: 'manual' };
+  endMapPick();
+  renderLocRow('set');
+}
+
+// Cancel: the row's DOM persists across tab switches — leaving it
+// untouched IS the prior state (including a failed state's actions)
+function cancelMapPick() { endMapPick(); }
+
+function endMapPick() {
+  pickMode = false;
+  document.getElementById('map-view').classList.remove('picking');
+  switchTab('plant');
 }
 
 /* ── v0.15.0 PHOTO: pick → compress → upload (never blocks a log) ── */
@@ -2481,11 +2730,16 @@ async function submitPlant() {
   if (!name) { showToast('Enter a plant name first'); return; }
   if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
   try {
+    // v0.16.0: ONLY the location-row state — the one permitted block
+    // (publishing a pin with no location is meaningless; silence was the old bug)
+    if (!logLoc) {
+      showToast('Set a location first — use Refresh or Place on map in the Location row');
+      return;
+    }
     await ensureAuth();
-    const loc = await getLogLocation();
     // 3 decimals ≈ 110 m; matches the DB trigger so the UI preview is honest
-    const lat = Math.round(loc.lat * 1000) / 1000;
-    const lng = Math.round(loc.lng * 1000) / 1000;
+    const lat = roundCoord(logLoc.lat);
+    const lng = roundCoord(logLoc.lng);
     const p = dbFind(name);
     // Finds carry no score — PlantScore answers a planting-timing question
     const sc = (p && selectedKind !== 'discovered') ? plantScore(p) : null;

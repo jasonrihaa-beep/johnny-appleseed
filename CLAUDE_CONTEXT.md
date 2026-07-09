@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.15.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.16.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -229,6 +229,36 @@ Written for the agent, not for humans.
    logging keeps working even if the photo_url column migration is
    not yet applied dashboard-side.
 
+## Location design decisions (final — from LOCATION_SPEC.md, v0.16.0)
+
+1. **Location is never guessed silently** (tripwire 15). The map-center
+   fallback never auto-fires; every published coordinate was either a
+   classified GPS fix the user saw, a manual map placement, or an
+   explicit user tap on "Use map center". No fourth path may ever be
+   added. The old silent-fallback `getLogLocation()` was REMOVED in
+   v0.16.0 (the spec's "replace the invisible-location behavior").
+2. **The preview shows ROUNDED coordinates** (3 decimals, same as the
+   DB trigger) — what the user sees is exactly what publishes, privacy
+   floor included. Copy notes "neighborhood precision (~100 m)".
+3. **Geolocation:** `{ enableHighAccuracy: true, timeout: 10000,
+   maximumAge: 0 }`, classified by coords.accuracy: ≤100 m good;
+   100–1000 m warn; >1000 m poor (Android approximate-permission
+   territory). Poor fixes are shown, never auto-accepted as final —
+   the row nudges manual placement: "Turn on precise location for
+   Chrome, or place the pin on the map."
+4. **Manual placement is a first-class path, not a fallback** — it is
+   how discovery-mode users log a plant found earlier elsewhere.
+   Found-mode helper: "Log where you found it — place on the map if
+   you're logging later." (toggled by selectKind).
+5. **Pick mode hides the plant FAB and filter pills** while active
+   (`#map-view.picking`); crosshair + confirm controls reuse existing
+   tokens, stroke SVG only, z 1050 — below the action sheet (1100).
+6. **First Plant-tab visit auto-requests a fix** — allowed because the
+   result lands visibly in the row (a seen, classified fix, not a
+   silent guess). GPS failure with a prior fix keeps the prior fix.
+7. **No location = the one permitted submit block** — a pin without a
+   location is meaningless; silence was the old bug.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -279,6 +309,9 @@ Written for the agent, not for humans.
 | Photo placeholder symbol | `#photo-placeholder-sprig` (svg symbol) + `.post-photo`/`.pin-photo` CSS | top of body; CSS after submit-bar |
 | Plant delete + photo hygiene | `confirmDeletePlant`, `doDeletePlant` | before openCommentSheet |
 | Sign-in caption | `.google-caption` | inside openSetupSheet googleBlock |
+| Location row (v0.16.0) | `id="location-row"`, `#loc-dot/-primary/-source`, `renderLocRow`, `logLoc` state | plant form, above access selector |
+| Location wrapper | `refreshLocation` (high-accuracy + classify), `useMapCenter`, `roundCoord` | where getLogLocation used to be |
+| Map pick mode | `startMapPick`/`confirmMapPick`/`cancelMapPick`, `#pick-crosshair`, `#pick-controls`, `#map-view.picking` | map view; exit hook at top of switchTab |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
@@ -377,6 +410,12 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     `position: fixed` is displaced by the mobile soft keyboard and will
     jump over the input being typed in. Any future bottom-pinned control
     follows this rule.
+15. **Location is never guessed silently.** The map-center fallback
+    must never auto-fire; every published coordinate was either a
+    classified GPS fix the user saw, a manual map placement, or an
+    explicit user tap on "Use map center". No fourth path may ever be
+    added. (The pre-v0.16.0 `getLogLocation()` silent fallback is the
+    cautionary tale — pins published at locations the user never saw.)
 
 ## Validate-after-edit checklist — skip none
 
@@ -455,5 +494,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   strip), universal sprig placeholder (honest illustration), delete
   hygiene, sign-in caption. Per-plant sketch library = pending asset
   lane. Own-plant delete path created (was a dead reference since S4c).
+- ✅ Location (v0.16.0): visible location row on the Plant form (status
+  dot, rounded coords, source label, Refresh / Place on map), high-
+  accuracy GPS with accuracy classification, map pick mode with
+  crosshair + "Use this spot", explicit "Use map center" in failed
+  state only. Silent map-center fallback removed — tripwire 15.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
