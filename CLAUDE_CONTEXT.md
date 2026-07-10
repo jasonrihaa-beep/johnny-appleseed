@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.22.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.23.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -383,10 +383,16 @@ Written for the agent, not for humans.
    (boolean, set on first dismiss). FIRST-TIME: splash → onboard flow
    (existing). RETURNING: splash with welcome panel → Map tab (skip
    onboard). "Let's go" CTA → Add tab.
-8. **Z-index:** firefly particles 1999 (below splash title 2000, above
-   video ~10), welcome panel 2001 (above title so always readable).
-9. **New localStorage keys:** ja_splash_seen (boolean, first-dismiss
-   flag). Repurposed ja_display_name for welcome greeting.
+8. **Z-index (v0.23.0 fix):** .splash-hero z:1, firefly particles
+   z:1999, .splash-content wrapper z:3 (lifts wordmark/tagline/buttons
+   above hero+fireflies — they were invisible at v0.22.0 due to no
+   positioning context). welcome panel z:2001 (absolute positioned,
+   above content).
+9. **Legibility scrim (v0.23.0):** .splash-hero::after overlay
+   rgba(20,33,26,0.35) z:10 — subtle dark scrim between hero media
+   and content so text stays readable over bright video frames.
+10. **New localStorage keys:** ja_splash_seen (boolean, first-dismiss
+    flag). Repurposed ja_display_name for welcome greeting.
 
 ## Contrast fix decisions (final — from CONTRAST_SPEC.md, v0.21.0)
 
@@ -701,5 +707,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   (skip onboard), "Let's go" CTA → Add tab. Video excluded from SW
   precache (2.9MB network-only). prefers-reduced-motion: still only, no
   video/fireflies.
+- ✅ Hero z-index fix (v0.23.0): .splash-content wrapper z:3 lifts
+  wordmark/tagline/buttons above hero (z:1) and fireflies (z:1999) — they
+  were invisible at v0.22.0. Legibility scrim (hero::after
+  rgba(20,33,26,0.35)) so text stays readable over bright video frames.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

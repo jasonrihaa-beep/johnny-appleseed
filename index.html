@@ -1539,6 +1539,15 @@ body.tab-map #map-view {
   overflow: hidden;
   z-index: 1;
 }
+/* v0.23.0 legibility scrim — subtle dark overlay so content stays readable */
+.splash-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(20,33,26,0.35);
+  z-index: 10;
+  pointer-events: none;
+}
 .hero-still {
   width: 100%;
   height: 100%;
@@ -1557,6 +1566,15 @@ body.tab-map #map-view {
 }
 .hero-video.fadeout {
   opacity: 0;
+}
+
+/* v0.23.0 splash content wrapper — lifts content above hero/fireflies */
+.splash-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* v0.18.0 firefly glow — ambient radial gradients behind the content */
@@ -1778,6 +1796,7 @@ body.tab-map #map-view {
   <div class="firefly" style="left:64%;animation-delay:1.5s;animation-duration:6.4s"></div>
   <div class="firefly" style="left:78%;animation-delay:2.6s;animation-duration:7.6s"></div>
   <div class="firefly" style="left:12%;animation-delay:3.8s;animation-duration:6.6s"></div>
+  <div class="splash-content">
   <div class="splash-mark">
     <svg viewBox="0 0 40 40" aria-hidden="true">
       <path d="M20 34C20 34 8 26 8 16a12 12 0 0 1 24 0c0 10-12 18-12 18z"/>
@@ -1790,6 +1809,7 @@ body.tab-map #map-view {
   <button class="splash-cta" onclick="getStartedFlow()">Get started</button>
   <button class="splash-secondary" onclick="enterApp()">Browse without an account</button>
   <p class="splash-privacy">No account required to browse.<br>No tracking. No ads. Your data stays on your device.</p>
+  </div><!-- /splash-content -->
   <div id="welcome-back" style="display:none">
     <p class="wb-greeting">Welcome back, <span id="wb-name"></span></p>
     <p class="wb-prompt">Ready to log another?</p>
@@ -2097,7 +2117,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.22.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.23.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
