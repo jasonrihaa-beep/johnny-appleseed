@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.25.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.26.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -357,6 +357,21 @@ Written for the agent, not for humans.
    (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
+
+## Polish 26 decisions (final — from POLISH26_SPEC.md, v0.26.0)
+
+1. **Wordmark legibility:** #topbar-wordmark and .splash-title both
+   color:var(--ink) so "Johnny" reads on dark backgrounds. Gold span on
+   "Appleseed" unchanged.
+2. **AI banner title legible:** .ai-banner-text strong color:var(--ink),
+   body color:var(--stone-700) for contrast on banner fill.
+3. **Banner alignment:** .ai-banner margin 0 12px (was 0 20px) — edges
+   now align with .post-card horizontal margins.
+4. **HONEST FOOTER:** "Your data stays on your device" replaced with
+   "No data selling" in BOTH locations (splash .splash-privacy +
+   profile footer). Old claim false since Supabase (S2), legal-review
+   liability. New claim: "No tracking. No ads. No data selling." —
+   every clause literally true.
 
 ## Contrast sweep 2 decisions (final — from CONTRAST2_SPEC.md, v0.25.0)
 
@@ -752,5 +767,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   light-value backgrounds (green-50, gold-100, violet-50, remaining white)
   to dark-compatible rgba tints. Notification rows, photo placeholder,
   all chips/tags now dark. Google button ONLY white element (branded).
+- ✅ Polish 26 (v0.26.0): wordmark/splash-title var(--ink) so "Johnny"
+  reads on dark (was dark-on-dark). AI banner title/body light, margins
+  12px to align with feed cards. HONEST FOOTER: "Your data stays on your
+  device" → "No data selling" (both locations) — old claim false since
+  Supabase S2, legal liability.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
