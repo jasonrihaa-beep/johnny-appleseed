@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.26.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.27.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -357,6 +357,19 @@ Written for the agent, not for humans.
    (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
+
+## Feed card photo decisions (final — from FEEDCARD_SPEC.md, v0.27.0)
+
+1. **Photos earn their space:** photo block renders ONLY when photo_url
+   exists. Photoless cards are compact text cards (author, plant name +
+   chips, note, actions) — no empty placeholder slab.
+2. **Placeholder removed:** photo-placeholder-sprig SVG + CSS deleted.
+   Grep found zero references outside the feed card renderer (only
+   usage). Map popups already omit placeholders (unchanged).
+3. **Cards with photos:** full-width 4:3 image exactly as before.
+4. **Spacing:** photoless cards read as intentional compact cards via
+   existing card padding; mixed feed (photo + photoless) gutters
+   consistent.
 
 ## Polish 26 decisions (final — from POLISH26_SPEC.md, v0.26.0)
 
@@ -772,5 +785,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   12px to align with feed cards. HONEST FOOTER: "Your data stays on your
   device" → "No data selling" (both locations) — old claim false since
   Supabase S2, legal liability.
+- ✅ Feed card photos (v0.27.0): photo block renders ONLY when photo_url
+  exists. Photoless cards = compact text cards, no empty placeholder slab
+  (~70% space saved). Placeholder SVG + CSS removed (zero other uses).
+  Cards with photos unchanged (4:3 full-width).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
