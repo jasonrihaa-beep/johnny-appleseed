@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.27.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.28.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -357,6 +357,26 @@ Written for the agent, not for humans.
    (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
+
+## Contrast token fixes (final — from CONTRAST3_SPEC.md, v0.28.0)
+
+1. **Toast fixed:** #toast color -> var(--ink) (was --stone-100,
+   near-black). Every toast readable (map location, all app toasts).
+2. **Active filter pill:** .filter-pill.active color -> var(--ink) (was
+   --stone-100 on green).
+3. **green-700 text sweep:** 13 instances swapped to var(--green-400)
+   where rendering TEXT on dark: .icon-btn, .tab-btn.active + .tab-label,
+   #map-fallback p, .comment-btn:hover, .avatar, .inspire-btn:hover,
+   .found-info-tags, .score-number, .loc-btn, #pick-crosshair,
+   .profile-avatar-lg, #location-text strong. Borders using green-700
+   unchanged (fine as-is).
+4. **Toast label:** "Notifications coming soon" -> "Reminders coming
+   soon" (Planting reminders row).
+5. **Hero assets replaced:** assets/hero-image.jpg (550KB, was 570KB) +
+   assets/hero-video.mp4 (2.3MB, was 2.9MB) — 8% right trim, Gemini
+   watermark removed, crossfade alignment preserved.
+6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
+   Feed radius (settings), Planting reminders (settings).
 
 ## Feed card photo decisions (final — from FEEDCARD_SPEC.md, v0.27.0)
 
@@ -789,5 +809,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   exists. Photoless cards = compact text cards, no empty placeholder slab
   (~70% space saved). Placeholder SVG + CSS removed (zero other uses).
   Cards with photos unchanged (4:3 full-width).
+- ✅ Contrast token fixes (v0.28.0): toast + active filter pill color
+  var(--ink) (was --stone-100, near-black). 13 green-700-as-text instances
+  -> green-400 (light on dark). Hero assets replaced (watermark removed,
+  8% smaller). "Reminders coming soon" label fix.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
