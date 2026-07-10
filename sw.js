@@ -1,4 +1,6 @@
-const CACHE = 'appleseed-v0-21-0';
+const CACHE = 'appleseed-v0-22-0';
+// Hero video (assets/hero-video.mp4) excluded — 2.9MB, network-only.
+// Hero still (assets/hero-image.jpg) network-fallback for bandwidth.
 const PRECACHE = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {

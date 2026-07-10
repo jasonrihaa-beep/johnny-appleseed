@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.21.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.22.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -358,6 +358,36 @@ Written for the agent, not for humans.
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
 
+## Hero splash decisions (final — from HERO_SPEC.md, v0.22.0)
+
+1. **Still image BASE layer:** assets/hero-image.jpg always present;
+   video layers ON TOP and fades away. Guarantees no blank splash if
+   video is slow or fails.
+2. **Video plays every load:** muted autoplay playsinline, NO loop. On
+   'ended' event, ~900ms opacity crossfade to still beneath. Jason
+   wants the animation each visit.
+3. **SW cache strategy:** video (2.9MB) excluded from precache —
+   network-only. Still image network-fallback.
+4. **prefers-reduced-motion:** skip video entirely (display:none), no
+   firefly animation. Still image + welcome panel (if returning) only.
+5. **Firefly particles:** CSS-only system, 12 divs with randomized
+   left/delay/duration, 6-8s fall with fade + slight horizontal drift.
+   No canvas, no JS loop. Wrapped in @media (prefers-reduced-motion:
+   no-preference).
+6. **Welcome-back panel:** ONLY shown if ja_user_id exists AND
+   ja_splash_seen='true' (returning user). Floats center-bottom,
+   ~300ms fade-in after 800ms delay. "Welcome back, [display_name]"
+   + "Ready to log another?" + "Let's go" CTA (closes splash → Add
+   tab). If user taps anywhere else, dismisses → Map tab.
+7. **Screen transitions:** new localStorage flag ja_splash_seen
+   (boolean, set on first dismiss). FIRST-TIME: splash → onboard flow
+   (existing). RETURNING: splash with welcome panel → Map tab (skip
+   onboard). "Let's go" CTA → Add tab.
+8. **Z-index:** firefly particles 1999 (below splash title 2000, above
+   video ~10), welcome panel 2001 (above title so always readable).
+9. **New localStorage keys:** ja_splash_seen (boolean, first-dismiss
+   flag). Repurposed ja_display_name for welcome greeting.
+
 ## Contrast fix decisions (final — from CONTRAST_SPEC.md, v0.21.0)
 
 1. **Root cause:** hardcoded background:white + dark-theme text tokens
@@ -664,5 +694,12 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   light text) fixing the invisible Beautyberry heading; map placeholder
   #14211A. Tripwire 17 scoped exception: popup styling allowed, map
   render frozen. Google button unchanged (stays white, v0.20.0).
+- ✅ Hero splash (v0.22.0): cinematic video hero (still base + video
+  overlay, ~900ms crossfade on end), 12 falling firefly particles
+  (CSS-only, 6-8s), welcome-back panel for returning users (ja_splash_seen
+  flag). Screen transitions: first-time → onboard, returning → Map tab
+  (skip onboard), "Let's go" CTA → Add tab. Video excluded from SW
+  precache (2.9MB network-only). prefers-reduced-motion: still only, no
+  video/fireflies.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
