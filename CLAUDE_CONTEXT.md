@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.23.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.24.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -357,6 +357,23 @@ Written for the agent, not for humans.
    (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
+
+## Filter wrap decisions (final — from FILTERWRAP_SPEC.md, v0.24.0)
+
+1. **Wrap replaces scroll:** #map-filter now flex-wrap:wrap (was
+   overflow-x:auto with hidden scrollbar). Pills flow to second row
+   instead of clipping; horizontal scroll removed. Bar height grows to
+   fit rows.
+2. **Compact pills:** padding 5px 12px (was 6px 14px), font-size
+   11.5px (was 12px), min-height 30px tap target. Keeps border/radius/
+   active/gold-active styling intact.
+3. **Position unchanged:** bar stays position:absolute top:12px
+   left/right:12px, z-index:10 (map chrome band). Two rows accepted.
+4. **Future-proofing (NOT built):** if filter count grows past ~10
+   (two rows full), next step is a "Filters" button opening a sheet —
+   NOT more rows.
+5. **Map render frozen (tripwire 17):** no circle/popup/pin changes.
+   Filter chrome only.
 
 ## Hero splash decisions (final — from HERO_SPEC.md, v0.22.0)
 
@@ -711,5 +728,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   wordmark/tagline/buttons above hero (z:1) and fireflies (z:1999) — they
   were invisible at v0.22.0. Legibility scrim (hero::after
   rgba(20,33,26,0.35)) so text stays readable over bright video frames.
+- ✅ Filter wrap (v0.24.0): map filter bar now flex-wrap:wrap (was
+  overflow-x:auto with hidden scrollbar). Pills flow to two rows, all
+  visible/reachable on desktop. Compact sizing (5px 12px padding, 11.5px
+  font, 30px min tap height). Future: >10 filters → sheet, not more rows.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

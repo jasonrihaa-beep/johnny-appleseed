@@ -299,26 +299,25 @@ body.tab-map #map-view {
   right: 12px;
   z-index: 10;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  row-gap: 6px;
 }
-#map-filter::-webkit-scrollbar { display: none; }
 
 .filter-pill {
   flex-shrink: 0;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 100px;
   border: 1px solid var(--stone-300);
   background: var(--stone-100);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--stone-700);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.15s;
   font-family: var(--font-sans);
+  min-height: 30px;
 }
 .filter-pill.active {
   background: var(--green-700);
@@ -2117,7 +2116,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.23.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.24.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
