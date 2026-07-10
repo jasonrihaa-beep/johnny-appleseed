@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.24.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.25.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -357,6 +357,22 @@ Written for the agent, not for humans.
    (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
+
+## Contrast sweep 2 decisions (final — from CONTRAST2_SPEC.md, v0.25.0)
+
+1. **Dark theme completed:** systematic sweep of ALL light-value
+   backgrounds (white, green-50, gold-100, violet-50). Converted to
+   dark-compatible rgba tints over dark base or appropriate dark tokens.
+2. **Notification rows:** unread accent rgba(85,136,102,0.15) on dark,
+   visually distinct from read state, text legible.
+3. **Photo placeholder:** .post-photo bg #1C2B22 (dark illustration
+   slot), SVG stroke #8FA398 (muted light sage) — no longer a light
+   slab.
+4. **All UI chips/tags:** green/gold/violet family now rgba tints with
+   dark-compatible text (green-400, gold-400, violet-400). Selected
+   states use slightly higher alpha for distinction.
+5. **.google-btn ONLY intentional white** (branded, exempt) — all other
+   surfaces dark.
 
 ## Filter wrap decisions (final — from FILTERWRAP_SPEC.md, v0.24.0)
 
@@ -732,5 +748,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   overflow-x:auto with hidden scrollbar). Pills flow to two rows, all
   visible/reachable on desktop. Compact sizing (5px 12px padding, 11.5px
   font, 30px min tap height). Future: >10 filters → sheet, not more rows.
+- ✅ Contrast sweep 2 (v0.25.0): completed dark theme, converted ALL
+  light-value backgrounds (green-50, gold-100, violet-50, remaining white)
+  to dark-compatible rgba tints. Notification rows, photo placeholder,
+  all chips/tags now dark. Google button ONLY white element (branded).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

@@ -238,9 +238,9 @@ body.tab-map #map-view {
   display: inline-block;
   padding: 2px 8px;
   border-radius: 100px;
-  background: var(--gold-100);
-  border: 1px solid var(--gold-200);
-  color: var(--gold-600);
+  background: rgba(244,161,39,0.15); /* v0.25.0 dark-compatible */
+  border: 1px solid rgba(244,161,39,0.3);
+  color: var(--gold-400);
   font-size: 11px;
   font-weight: 500;
 }
@@ -566,7 +566,7 @@ body.tab-map #map-view {
   cursor: pointer;
 }
 .notif-row:hover { background: var(--stone-200); }
-.notif-row.unread { background: var(--green-50); }
+.notif-row.unread { background: rgba(85,136,102,0.15); } /* v0.25.0 dark-compatible unread accent */
 .notif-text { flex: 1; font-size: 14px; color: var(--ink); line-height: 1.5; }
 .notif-time { font-size: 11px; color: var(--stone-500); flex-shrink: 0; }
 .notif-empty {
@@ -673,8 +673,8 @@ body.tab-map #map-view {
   font-family: var(--font-sans);
 }
 
-.avatar.gold { background: var(--gold-100); color: var(--gold-600); }
-.avatar.sage { background: var(--green-50); color: var(--green-600); }
+.avatar.gold { background: rgba(244,161,39,0.18); color: var(--gold-400); } /* v0.25.0 dark-compatible */
+.avatar.sage { background: rgba(85,136,102,0.22); color: var(--green-400); } /* v0.25.0 dark-compatible */
 
 .post-meta { flex: 1; }
 .post-author { font-size: 14px; font-weight: 500; color: var(--ink); }
@@ -696,24 +696,24 @@ body.tab-map #map-view {
   gap: 5px;
   padding: 4px 10px;
   border-radius: 100px;
-  background: var(--green-50);
-  border: 1px solid var(--green-100);
+  background: rgba(85,136,102,0.15); /* v0.25.0 dark-compatible */
+  border: 1px solid rgba(85,136,102,0.3);
   font-size: 12px;
-  color: var(--green-700);
+  color: var(--green-400);
   font-weight: 500;
   width: fit-content;
 }
 
 .post-plant-tag.edible {
-  background: var(--gold-100);
-  border-color: var(--gold-200);
-  color: var(--gold-600);
+  background: rgba(244,161,39,0.15); /* v0.25.0 dark-compatible */
+  border-color: rgba(244,161,39,0.3);
+  color: var(--gold-400);
 }
 
 .post-plant-tag.pollinator {
-  background: var(--violet-50);
-  border-color: var(--violet-100);
-  color: var(--violet-700);
+  background: rgba(109,40,217,0.15); /* v0.25.0 dark-compatible */
+  border-color: rgba(109,40,217,0.3);
+  color: var(--violet-400);
 }
 
 /* ── Plant autocomplete ── */
@@ -799,7 +799,7 @@ body.tab-map #map-view {
   -webkit-tap-highlight-color: transparent;
 }
 .inspire-btn:hover { border-color: var(--green-400); color: var(--green-700); }
-.inspire-btn.inspired { border-color: var(--green-400); color: var(--green-700); background: var(--green-50); }
+.inspire-btn.inspired { border-color: var(--green-400); color: var(--green-400); background: rgba(85,136,102,0.15); } /* v0.25.0 dark-compatible */
 .inspire-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
 .score-badge {
@@ -921,29 +921,29 @@ body.tab-map #map-view {
   -webkit-tap-highlight-color: transparent;
 }
 .tag-option.selected.edible {
-  background: var(--gold-100);
+  background: rgba(244,161,39,0.18); /* v0.25.0 dark-compatible */
   border-color: var(--gold-400);
-  color: var(--gold-600);
+  color: var(--gold-400);
 }
 .tag-option.selected.wildlife {
-  background: var(--green-50);
+  background: rgba(85,136,102,0.18); /* v0.25.0 dark-compatible */
   border-color: var(--green-400);
-  color: var(--green-700);
+  color: var(--green-400);
 }
 .tag-option.selected.both {
-  background: var(--green-50);
+  background: rgba(85,136,102,0.18); /* v0.25.0 dark-compatible */
   border-color: var(--green-400);
-  color: var(--green-700);
+  color: var(--green-400);
 }
 .tag-option.selected.pollinator {
-  background: var(--violet-50);
+  background: rgba(109,40,217,0.18); /* v0.25.0 dark-compatible */
   border-color: var(--violet-400);
-  color: var(--violet-700);
+  color: var(--violet-400);
 }
 .tag-option.access-option.selected {
-  background: var(--green-50);
+  background: rgba(85,136,102,0.18); /* v0.25.0 dark-compatible */
   border-color: var(--green-400);
-  color: var(--green-700);
+  color: var(--green-400);
 }
 
 /* v0.13.0 kind toggle — THIRD single-select. Styling mirrors .tag-option
@@ -965,9 +965,9 @@ body.tab-map #map-view {
   -webkit-tap-highlight-color: transparent;
 }
 .kind-option.selected {
-  background: var(--green-50);
+  background: rgba(85,136,102,0.18); /* v0.25.0 dark-compatible */
   border-color: var(--green-400);
-  color: var(--green-700);
+  color: var(--green-400);
 }
 
 /* v0.13.0 found-mode identity line */
@@ -992,8 +992,8 @@ body.tab-map #map-view {
   align-items: center;
   padding: 4px 10px;
   border-radius: 100px;
-  background: var(--green-50);
-  border: 1px solid var(--stone-300);
+  background: rgba(85,136,102,0.15); /* v0.25.0 dark-compatible */
+  border: 1px solid rgba(122,153,136,0.22);
   font-size: 12px;
   color: var(--stone-700);
   font-weight: 500;
@@ -1047,14 +1047,14 @@ body.tab-map #map-view {
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 100px;
-  background: var(--green-50);
-  color: var(--green-700);
-  border: 1px solid var(--green-100);
+  background: rgba(85,136,102,0.15); /* v0.25.0 dark-compatible */
+  color: var(--green-400);
+  border: 1px solid rgba(85,136,102,0.3);
 }
 .score-status.warn {
-  background: var(--gold-100);
-  color: var(--gold-600);
-  border-color: var(--gold-200);
+  background: rgba(244,161,39,0.15); /* v0.25.0 dark-compatible */
+  color: var(--gold-400);
+  border-color: rgba(244,161,39,0.3);
 }
 .score-status.danger {
   background: var(--red-50);
@@ -1130,9 +1130,9 @@ body.tab-map #map-view {
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  border: 1.5px dashed var(--stone-300);
+  border: 1.5px dashed rgba(122,153,136,0.3);
   border-radius: 10px;
-  background: var(--green-50);
+  background: rgba(85,136,102,0.08); /* v0.25.0 dark-compatible */
   color: var(--stone-700);
   font-size: 14px;
   cursor: pointer;
@@ -1171,11 +1171,11 @@ body.tab-map #map-view {
   margin: 10px 0 2px;
   border-radius: 10px;
   overflow: hidden;
-  background: var(--green-50);
+  background: #1C2B22; /* v0.25.0 dark illustration slot */
 }
 .post-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .post-photo.placeholder { display: flex; align-items: center; justify-content: center; }
-.post-photo-ph { width: 52px; height: 52px; stroke: var(--stone-500); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.post-photo-ph { width: 52px; height: 52px; stroke: #8FA398; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; } /* v0.25.0 muted light sage */
 
 /* v0.15.0 pin popup thumb — fixed height, Leaflet needs no reflow handling */
 .pin-photo {
@@ -1464,8 +1464,8 @@ body.tab-map #map-view {
 .ai-banner {
   margin: 0 20px 16px;
   padding: 12px 14px;
-  background: var(--green-50);
-  border: 1px solid var(--green-100);
+  background: rgba(85,136,102,0.12); /* v0.25.0 dark-compatible */
+  border: 1px solid rgba(85,136,102,0.25);
   border-radius: 10px;
   display: flex;
   align-items: flex-start;
@@ -2116,7 +2116,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.24.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.25.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 
