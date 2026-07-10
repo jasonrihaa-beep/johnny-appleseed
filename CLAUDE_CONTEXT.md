@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.19.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.20.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -338,6 +338,26 @@ Written for the agent, not for humans.
    (#map-filter and #plant-fab at z 1000). The pre-v0.19.0 z 500 let
    pills and FAB bleed through on load.
 
+## Overlay fix decisions (final — from OVERLAYFIX_SPEC.md, v0.20.0)
+
+1. **Google button root cause:** background:white with color:var(--ink),
+   but --ink is now #F5F1E8 (dark theme), giving white-on-white.
+   Google's own button spec is white background + #1F1F1F text +
+   full-color G. Hardcoded these (do NOT use --ink here) so the button
+   stays correct in any theme. This is a branded third-party button,
+   exempt from the app palette by design.
+2. **Sheet backdrop root cause:** #action-sheet uses translucent
+   var(--glass) + blur. Over the MAP, the pills/FAB (z 1000) show
+   through the glass. Fixed by making the backdrop near-opaque
+   (rgba(13,26,15,0.92)); the sheet keeps its glass look but now sits
+   over an opaque scrim, not the live map. Glass stays; bleed-through
+   stops.
+3. **Z-INDEX BANDS** (applied in v0.20.0): base content 1-100; map
+   chrome (pills/FAB/pick) 1000-1050; overlays + their backdrops
+   (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
+   toast 3000 (toast must never be occluded). Violations fixed: toast
+   200 → 3000, notif-panel 400/401 → 1150/1151.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -608,5 +628,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   text-shadow (follows letterforms, no square), firefly-pulse split
   into -box/-text variants, splash z-index 500 → 2000 (occludes map
   controls). Map unchanged (tripwire 17).
+- ✅ Overlay fix (v0.20.0): Google button to spec (#FFFFFF bg, #1F1F1F
+  text, dark G stroke — exempt from app palette), sheet backdrop
+  near-opaque (0.92) to hide map chrome behind glass, z-index band map
+  enforced (toast 3000, notif 1150/1151). Map unchanged (tripwire 17).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
