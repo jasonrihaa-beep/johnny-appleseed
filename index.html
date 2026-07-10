@@ -194,32 +194,37 @@ body.tab-map #map-view {
 #leaflet-map {
   width: 100%;
   height: 100%;
-  background: #E8F0E4;
+  background: #14211A; /* v0.21.0 dark so no light flash before tiles load */
   z-index: 1;
 }
-/* Leaflet popup matches design system */
+/* v0.21.0 Leaflet popup dark — scoped tripwire-17 exception: popups are chrome,
+   stylable to fix the invisible heading (--ink on white). The map render itself
+   (circles, markers, addHazeCircle) remains frozen. Fixes the reported
+   Beautyberry bug. */
 .leaflet-popup-content-wrapper {
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(28,43,30,0.15);
   font-family: var(--font-sans);
+  background: #1C2B22; /* dark surface, matches --stone-200 */
 }
+.leaflet-popup-tip { background: #1C2B22; }
 .leaflet-popup-content { margin: 12px 16px; font-size: 13px; line-height: 1.5; }
-.leaflet-popup-content strong { font-family: var(--font-serif); font-size: 15px; font-weight: 500; color: var(--ink); display: block; margin-bottom: 2px; }
-.leaflet-popup-content .pin-meta { color: var(--stone-500); font-size: 12px; }
-.leaflet-popup-content .pin-score { color: var(--green-600); font-weight: 600; }
+.leaflet-popup-content strong { font-family: var(--font-serif); font-size: 15px; font-weight: 500; color: #F5F1E8; display: block; margin-bottom: 2px; }
+.leaflet-popup-content .pin-meta { color: #8FA398; font-size: 12px; }
+.leaflet-popup-content .pin-score { color: var(--green-400); font-weight: 600; }
 
 /* v0.9.0 richer DB-pin popup */
 .leaflet-popup-content .pin-sci {
   display: block;
   font-style: italic;
   font-size: 12px;
-  color: var(--stone-500);
+  color: #8FA398; /* v0.21.0 light muted on dark popup */
   margin-bottom: 2px;
 }
 .leaflet-popup-content .pin-note {
   display: block;
   font-size: 12px;
-  color: var(--stone-700);
+  color: #C3D2C8; /* v0.21.0 light secondary on dark popup */
   margin-top: 4px;
 }
 .leaflet-popup-content .pin-badges {
@@ -261,7 +266,7 @@ body.tab-map #map-view {
   display: none;
   align-items: center;
   justify-content: center;
-  background: #E8F0E4;
+  background: #14211A; /* v0.21.0 dark fallback state */
   z-index: 5;
   text-align: center;
 }
@@ -281,7 +286,7 @@ body.tab-map #map-view {
 .leaflet-popup-content .pin-haze {
   display: block;
   font-size: 11.5px;
-  color: var(--stone-500);
+  color: #8FA398; /* v0.21.0 light muted on dark popup */
   margin-top: 4px;
   line-height: 1.45;
 }
@@ -471,7 +476,7 @@ body.tab-map #map-view {
   margin-bottom: 8px;
   border: 1px solid var(--stone-300);
   border-radius: 12px;
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
   font-size: 14px;
   font-weight: 500;
   font-family: var(--font-sans);
@@ -737,8 +742,8 @@ body.tab-map #map-view {
   width: 100%;
   padding: 10px 14px;
   border: none;
-  border-bottom: 1px solid var(--stone-200);
-  background: white;
+  border-bottom: 1px solid var(--stone-300);
+  background: var(--stone-200); /* v0.21.0 base dark surface */
   cursor: pointer;
   text-align: left;
   font-family: var(--font-sans);
@@ -906,7 +911,7 @@ body.tab-map #map-view {
   padding: 10px 8px;
   border: 1px solid var(--stone-300);
   border-radius: 10px;
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
   text-align: center;
   font-size: 13px;
   font-weight: 500;
@@ -950,7 +955,7 @@ body.tab-map #map-view {
   padding: 10px 8px;
   border: 1px solid var(--stone-300);
   border-radius: 10px;
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
   text-align: center;
   font-size: 13px;
   font-weight: 500;
@@ -971,7 +976,7 @@ body.tab-map #map-view {
   display: none;
   border: 1px solid var(--stone-300);
   border-radius: 10px;
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
   padding: 10px 14px;
   margin: -8px 0 20px;
   font-size: 13px;
@@ -1344,7 +1349,7 @@ body.tab-map #map-view {
   padding: 8px 16px;
   border-radius: 100px;
   border: 1px solid var(--stone-300);
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
   font-size: 13px;
   font-weight: 500;
   font-family: var(--font-sans);
@@ -1366,7 +1371,7 @@ body.tab-map #map-view {
 }
 
 .stat-card {
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
   border: 1px solid var(--stone-300);
   border-radius: 12px;
   padding: 14px 12px;
@@ -1484,7 +1489,7 @@ body.tab-map #map-view {
   gap: 8px;
   padding: 10px 20px;
   border-bottom: 1px solid var(--stone-300);
-  background: white;
+  background: var(--stone-200); /* v0.21.0 dark surface */
 }
 #location-bar svg { width: 14px; height: 14px; stroke: var(--green-600); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
 #location-text { font-size: 13px; color: var(--stone-700); }
@@ -1975,7 +1980,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.20.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.21.0 &middot; AIRIHA LLC<br>No tracking. No ads. Your data stays on your device.</p>
 
     </div>
 

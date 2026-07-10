@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.20.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.21.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -358,6 +358,30 @@ Written for the agent, not for humans.
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
 
+## Contrast fix decisions (final — from CONTRAST_SPEC.md, v0.21.0)
+
+1. **Root cause:** hardcoded background:white + dark-theme text tokens
+   (now light) = light-on-light. Worst instance: Leaflet popup heading
+   (--ink, near-white, on white — invisible; the reported Beautyberry
+   bug). Fixed by moving surfaces to var(--stone-200) so they darken
+   with the app.
+2. **Tripwire 17 scoped exception** (v0.21.0): Leaflet POPUP surfaces
+   (.leaflet-popup-content-wrapper, -tip, popup content classes) MAY
+   be styled to fix the invisible heading. #leaflet-map, L.circle,
+   addHazeCircle, access opacity tiers, markers, pick mode remain
+   frozen. Popups are chrome; the map render is still untouched.
+3. **Converted background:white -> var(--stone-200):** sheet-btn,
+   suggest-item, tag-option, kind-option, found-info, name-edit-btn,
+   stat-card, location-bar. The .google-btn is NOT in this list — it
+   correctly stays white (shipped v0.20.0).
+4. **Leaflet popup dark:** wrapper + tip bg #1C2B22; heading #F5F1E8;
+   pin-meta/pin-sci/pin-haze #8FA398; pin-note #C3D2C8; pin-score
+   --green-400 (more legible on dark than --green-600). Chips +
+   box-shadow unchanged.
+5. **Map placeholder backgrounds:** #E8F0E4 -> #14211A so no light
+   flash before tiles load (the map CONTAINER background, not the map
+   render — allowed).
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -525,13 +549,15 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     aesthetics — jitter is fabricated data (honest-states violation),
     and the stored coordinate is already public via the API, so the
     honest circle leaks nothing new.
-17. **The map is off-limits during dark-theme work.** #leaflet-map,
-    L.circle rendering, addHazeCircle, access opacity tiers, and all
-    popup styling are NOT touched when implementing dark surfaces.
-    backdrop-filter is NEVER applied over the map (Leaflet pan/zoom +
-    blur destroys framerate on mid-range Android). The map keeps its
-    appearance until a deliberate dark-tuning pass; the rule prevents
-    accidental map changes bleeding in from a surface remap.
+17. **The map render is off-limits during dark-theme work.**
+    #leaflet-map, L.circle rendering, addHazeCircle, access opacity
+    tiers, markers, and pick mode are NOT touched when implementing
+    dark surfaces. SCOPED EXCEPTION (v0.21.0): Leaflet POPUP styling
+    (.leaflet-popup-content-wrapper, -tip, popup content classes) MAY
+    be modified to fix contrast bugs — popups are chrome, not the map
+    render. The map render itself stays frozen. backdrop-filter is
+    NEVER applied over the map (Leaflet pan/zoom + blur destroys
+    framerate on mid-range Android).
 
 ## Validate-after-edit checklist — skip none
 
@@ -632,5 +658,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   text, dark G stroke — exempt from app palette), sheet backdrop
   near-opaque (0.92) to hide map chrome behind glass, z-index band map
   enforced (toast 3000, notif 1150/1151). Map unchanged (tripwire 17).
+- ✅ Contrast fix (v0.21.0): converted 9 light-island surfaces
+  (sheet-btn, suggest, tag/kind options, found-info, name-edit, stats,
+  location-bar) to var(--stone-200); Leaflet popup dark (#1C2B22 bg,
+  light text) fixing the invisible Beautyberry heading; map placeholder
+  #14211A. Tripwire 17 scoped exception: popup styling allowed, map
+  render frozen. Google button unchanged (stays white, v0.20.0).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

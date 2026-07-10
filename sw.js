@@ -1,4 +1,4 @@
-const CACHE = 'appleseed-v0-20-0';
+const CACHE = 'appleseed-v0-21-0';
 const PRECACHE = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
