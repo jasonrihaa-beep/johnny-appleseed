@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.32.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.33.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -3786,15 +3786,16 @@ async function googleSignIn() {
   try {
     // Tab-scoped return marker — NOT a sacred ja_ localStorage key
     try { sessionStorage.setItem('ja_oauth_return', '1'); } catch (e) {}
-    const opts = { provider: 'google', options: { redirectTo: 'https://johnnyappleseed.farm' } };
+    const opts = { provider: 'google', options: { redirectTo: window.location.origin } };
     const { data: { session } } = await sb.auth.getSession();
     let error;
     if (session && session.user.is_anonymous) {
       // Anonymous session: try linkIdentity FIRST (keeps plants)
       ({ error } = await sb.auth.linkIdentity(opts));
       if (error) {
-        // ANY link error -> fall back to sign-in (unconditional, no string matching)
-        console.error('linkIdentity failed, falling back to signInWithOAuth:', error);
+        // ANY link error -> purge zombie session, then fall back to sign-in
+        console.error('linkIdentity failed, purging local session and falling back to signInWithOAuth:', error);
+        try { await sb.auth.signOut({ scope: 'local' }); } catch (signOutErr) { /* ignore */ }
         ({ error } = await sb.auth.signInWithOAuth(opts));
       }
     } else {
@@ -4138,7 +4139,13 @@ function bumpLogCount() {
 
 function showAuthError(msg, rawError) {
   const title = 'Could not sign in';
-  const detail = rawError ? `${msg}\n\nRaw error: ${JSON.stringify(rawError)}` : msg;
+  let detail = msg;
+  if (rawError) {
+    const errMsg = rawError.message || rawError.error_description || rawError.error || '';
+    const status = rawError.status || rawError.code || '';
+    const raw = status ? `${errMsg} (${status})` : errMsg;
+    detail = `${msg}\n\nRaw error: ${raw || JSON.stringify(rawError)}`;
+  }
   openSheet(
     [{ label: 'Dismiss', handler: closeSheet }],
     title,

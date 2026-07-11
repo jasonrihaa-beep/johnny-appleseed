@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.32.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.33.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -377,6 +377,31 @@ Written for the agent, not for humans.
    watermark removed, crossfade alignment preserved.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
+
+## Auth clean decisions (final — from AUTHCLEAN_SPEC.md, v0.33.0)
+
+1. **RAW ERRORS, ALWAYS:** showAuthError displays the human-readable
+   line PLUS the raw error (e.message, e.status/e.code when present)
+   in the dialog body. v0.32.0 passed errors but showed only "Could
+   not sign in" — the raw provider message was missing, diagnosis took
+   longer. An auth failure that hides its reason is a diagnosis tax —
+   this dialog exists for exactly one user journey: reporting what
+   went wrong.
+2. **ZOMBIE PURGE:** in googleSignIn(), when linkIdentity errors on an
+   anonymous session, call `await sb.auth.signOut({ scope: 'local' })`
+   BEFORE the signInWithOAuth fallback — abandoning the anon session
+   is already accepted policy (GOOGLEFIX decision 3), and a corrupt/
+   deleted-user session must never poison the clean sign-in.
+   scope:'local' only clears this browser's stored session; it cannot
+   sign out other devices. Wrapped in try/catch, ignores its own
+   errors.
+3. **DYNAMIC ORIGIN (supersedes the unpasted ORIGINFIX):** redirectTo
+   becomes window.location.origin everywhere — user returns to the
+   origin they started from; .farm stays canonical; the onrender
+   mirror and installed PWAs work. Zero hardcoded app origins in auth
+   opts.
+4. **TRIPWIRE 18 extended:** auth flows are origin-agnostic and
+   zombie-tolerant; auth errors always surface raw provider text.
 
 ## Google fix 2 decisions (final — from GOOGLEFIX2_SPEC.md, v0.32.0)
 
@@ -941,5 +966,13 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   (dismissible sheet, not toast) with raw provider message. Never strand:
   Profile always shows "Sign in with Google" when session is anonymous.
   Unambiguous success: "Signed in with Google" + email.
+- ✅ Auth clean (v0.33.0): raw errors ALWAYS displayed (e.message,
+  e.status/e.code) in auth error dialogs — v0.32.0 passed errors but
+  showed only title. Zombie purge: signOut scope:local BEFORE
+  signInWithOAuth fallback (corrupt/deleted-user session never poisons
+  clean sign-in). Dynamic origin: redirectTo = window.location.origin
+  (supersedes unpasted ORIGINFIX) — .farm canonical, onrender mirror
+  works, PWAs work. TRIPWIRE 18 extended: auth flows origin-agnostic,
+  zombie-tolerant, raw-error-surfacing.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
