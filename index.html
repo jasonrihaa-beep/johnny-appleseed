@@ -1873,7 +1873,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <div class="feed-section-label">Recent plantings nearby</div>
+      <div class="feed-section-label">Recent plantings nearby<button id="feed-refresh-btn" onclick="refreshFeed()" aria-label="Refresh feed" style="background:none;border:none;color:var(--green-400);font-size:18px;margin-left:8px;cursor:pointer;padding:0;vertical-align:middle">⟳</button></div>
 
       <div id="feed-live"></div>
 
@@ -2015,43 +2015,11 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <div class="stat-grid">
-        <div class="stat-card">
-          <div class="stat-num">7</div>
-          <div class="stat-label">Planted</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">3</div>
-          <div class="stat-label">Fruiting</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-num">12</div>
-          <div class="stat-label">Species</div>
-        </div>
-      </div>
+      <div class="stat-grid" id="profile-stats"></div>
 
       <div style="margin-bottom:28px">
         <div class="section-title">My plants</div>
-        <div class="plant-log-item">
-          <div class="plant-log-dot edible"></div>
-          <span class="plant-log-name">Fig tree</span>
-          <span class="plant-log-date">Apr 12</span>
-        </div>
-        <div class="plant-log-item">
-          <div class="plant-log-dot"></div>
-          <span class="plant-log-name">American Beautyberry</span>
-          <span class="plant-log-date">Mar 28</span>
-        </div>
-        <div class="plant-log-item">
-          <div class="plant-log-dot edible"></div>
-          <span class="plant-log-name">Blackberry</span>
-          <span class="plant-log-date">Mar 15</span>
-        </div>
-        <div class="plant-log-item">
-          <div class="plant-log-dot"></div>
-          <span class="plant-log-name">Texas Redbud</span>
-          <span class="plant-log-date">Feb 20</span>
-        </div>
+        <div id="my-plants-list"></div>
       </div>
 
       <div style="margin-bottom:28px">
@@ -2103,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.28.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.29.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -3022,6 +2990,8 @@ async function submitPlant() {
     loadDbPins();
     loadFeed();
     if (!myProfile) await loadOwnProfile(); // first log created the anon profile
+    renderMyPlants(); // update My Plants immediately
+    renderProfileStats(); // update stats immediately
     bumpLogCount();
     maybeShowSetupSheet(); // one-shot, first log only (decision 5)
     setTimeout(() => switchTab('feed'), 1200);
@@ -3060,6 +3030,40 @@ function setFeedMode(mode, el) {
   document.querySelectorAll('#feed-pills .filter-pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   loadFeed();
+}
+
+async function refreshFeed() {
+  await Promise.all([loadFeed(), loadDbPins()]);
+  showToast('Feed refreshed');
+}
+
+let pullStart = null;
+let pullDistance = 0;
+const PULL_THRESHOLD = 80;
+
+function initPullToRefresh() {
+  const feedView = document.getElementById('feed-view');
+  feedView.addEventListener('touchstart', e => {
+    if (feedView.scrollTop === 0) {
+      pullStart = e.touches[0].clientY;
+      pullDistance = 0;
+    }
+  }, { passive: true });
+  feedView.addEventListener('touchmove', e => {
+    if (pullStart !== null && feedView.scrollTop === 0) {
+      pullDistance = e.touches[0].clientY - pullStart;
+      if (pullDistance > 0 && pullDistance < PULL_THRESHOLD * 2) {
+        e.preventDefault();
+      }
+    }
+  }, { passive: false });
+  feedView.addEventListener('touchend', () => {
+    if (pullDistance > PULL_THRESHOLD) {
+      refreshFeed();
+    }
+    pullStart = null;
+    pullDistance = 0;
+  }, { passive: true });
 }
 
 async function loadFeed() {
@@ -3833,7 +3837,10 @@ async function handleOauthReturn() {
       return;
     }
     showToast('Garden protected — Google');
-    await loadOwnProfile();
+    await loadOwnProfile(); // this re-renders hero, plants, stats
+    renderProfileHero(); // explicit re-render
+    renderMyPlants();
+    renderProfileStats();
     if (myProfile && myProfile.display_name === 'Planter') {
       // First name ONLY — surnames are doxxing surface on a public
       // location-tagged map (decision 1). Editable, user must Save.
@@ -3903,15 +3910,19 @@ async function loadOwnProfile() {
   if (!sb) return;
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { renderProfileHero(); renderEmailRow(null); return; }
+    if (!session) { renderProfileHero(); renderEmailRow(null); renderMyPlants(); renderProfileStats(); return; }
     const { data, error } = await sb.from('profiles')
       .select('id, display_name, avatar_color').eq('id', session.user.id).single();
     if (error) throw error;
     myProfile = data;
     renderProfileHero();
     renderEmailRow(session.user);
+    renderMyPlants();
+    renderProfileStats();
   } catch (e) {
     renderProfileHero(); // hero falls back to the honest default state
+    renderMyPlants();
+    renderProfileStats();
   }
 }
 
@@ -3962,6 +3973,70 @@ async function cycleAvatar() {
     myProfile.avatar_color = prev; // roll back
     renderProfileHero();
     showToast(e.message || 'Could not save color');
+  }
+}
+
+async function renderMyPlants() {
+  const container = document.getElementById('my-plants-list');
+  if (!sb || !myProfile) {
+    container.innerHTML = '<div style="color:var(--ash);padding:12px 0">Nothing planted yet. Your first plant lands here.</div>';
+    return;
+  }
+  try {
+    const { data, error } = await sb.from('plants')
+      .select('id, plant_name, tags, kind, planted_at')
+      .eq('user_id', myProfile.id)
+      .order('planted_at', { ascending: false })
+      .limit(50);
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div style="color:var(--ash);padding:12px 0">Nothing planted yet. Your first plant lands here.</div>';
+      return;
+    }
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    container.innerHTML = data.map(p => {
+      const d = new Date(p.planted_at);
+      const month = monthNames[d.getMonth()];
+      const day = d.getDate();
+      const hasEdible = p.tags && p.tags.includes('edible');
+      const dotClass = hasEdible ? 'plant-log-dot edible' : 'plant-log-dot';
+      const foundChip = p.kind === 'discovered' ? '<span style="font-size:11px;color:var(--ash);margin-left:6px">Found</span>' : '';
+      return `<div class="plant-log-item">
+        <div class="${dotClass}"></div>
+        <span class="plant-log-name">${p.plant_name}${foundChip}</span>
+        <span class="plant-log-date">${month} ${day}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="color:var(--ash);padding:12px 0">Could not load plants.</div>';
+  }
+}
+
+async function renderProfileStats() {
+  const container = document.getElementById('profile-stats');
+  if (!sb || !myProfile) {
+    container.innerHTML = `
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Planted</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Found</div></div>
+    `;
+    return;
+  }
+  try {
+    const [planted, found] = await Promise.all([
+      sb.from('plants').select('*', { count: 'exact', head: true }).eq('user_id', myProfile.id).eq('kind', 'planted'),
+      sb.from('plants').select('*', { count: 'exact', head: true }).eq('user_id', myProfile.id).eq('kind', 'discovered')
+    ]);
+    const plantedCount = planted.count || 0;
+    const foundCount = found.count || 0;
+    container.innerHTML = `
+      <div class="stat-card"><div class="stat-num">${plantedCount}</div><div class="stat-label">Planted</div></div>
+      <div class="stat-card"><div class="stat-num">${foundCount}</div><div class="stat-label">Found</div></div>
+    `;
+  } catch (e) {
+    container.innerHTML = `
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Planted</div></div>
+      <div class="stat-card"><div class="stat-num">0</div><div class="stat-label">Found</div></div>
+    `;
   }
 }
 
@@ -4102,6 +4177,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadFeed();
   loadOwnProfile();
   handleOauthReturn(); // after supabase-js session pickup at createClient
+  initPullToRefresh();
 
   // v0.22.0 hero video fadeout on end
   const heroVideo = document.querySelector('.hero-video');

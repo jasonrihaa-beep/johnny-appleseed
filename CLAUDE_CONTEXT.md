@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.28.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.29.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -377,6 +377,35 @@ Written for the agent, not for humans.
    watermark removed, crossfade alignment preserved.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
+
+## Profile real data decisions (final — from PROFILE_REAL_SPEC.md, v0.29.0)
+
+1. **Honest-states fix:** all hardcoded fake profile data removed (four
+   .plant-log-item rows — Fig tree, American Beautyberry, Blackberry,
+   Texas Redbud; three .stat-num hardcoded values 7/3/12). Profile now
+   shows REAL data or honest empty states, never fake inventory.
+2. **renderMyPlants():** queries session user's plants (user_id eq,
+   select id/plant_name/tags/kind/planted_at, order planted_at desc,
+   limit 50). Renders each as .plant-log-item with type-colored dot
+   (edible tag → .edible), plant name, "Found" chip if kind=discovered,
+   and planted_at as "Mon DD" format. Empty state: "Nothing planted
+   yet. Your first plant lands here." Called on profile load, after
+   plant log, after OAuth return.
+3. **renderProfileStats():** queries real counts via head:true —
+   "Planted" = count kind='planted', "Found" = count kind='discovered'.
+   Third stat removed (Inspires count deferred). Empty/no-session shows
+   0, never placeholder numbers.
+4. **Feed newest-first:** loadFeed already orders planted_at desc — new
+   plants appear at TOP immediately (no change needed, verified).
+5. **Pull-to-refresh:** initPullToRefresh() on #feed-view (touch
+   gesture at scroll-top, pullDistance > 80px threshold) calls
+   refreshFeed() → Promise.all([loadFeed(), loadDbPins()]). Desktop
+   refresh: ⟳ control inline in feed-section-label.
+6. **OAuth re-render:** handleOauthReturn() explicitly calls
+   renderProfileHero(), renderMyPlants(), renderProfileStats() after
+   loadOwnProfile() so real display_name and real plants show
+   immediately, no stale "Planter" after sign-in.
+7. **Map unchanged** (tripwire 17 — haze dot fix is the next build).
 
 ## Feed card photo decisions (final — from FEEDCARD_SPEC.md, v0.27.0)
 
@@ -813,5 +842,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   var(--ink) (was --stone-100, near-black). 13 green-700-as-text instances
   -> green-400 (light on dark). Hero assets replaced (watermark removed,
   8% smaller). "Reminders coming soon" label fix.
+- ✅ Profile real data (v0.29.0): removed ALL hardcoded fake profile data
+  (4 plant rows, 3 stat numbers) — honest-states fix. renderMyPlants()
+  queries real user plants (newest first), renderProfileStats() queries
+  real counts (Planted/Found). Feed already newest-first. Pull-to-refresh
+  gesture + desktop ⟳ control on feed. OAuth return re-renders profile
+  with real name + plants. Map unchanged (haze-dot fix is the next build).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
