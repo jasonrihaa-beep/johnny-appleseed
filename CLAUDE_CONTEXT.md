@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.33.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.34.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -377,6 +377,33 @@ Written for the agent, not for humans.
    watermark removed, crossfade alignment preserved.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
+
+## Return fix decisions (final — from RETURNFIX_SPEC.md, v0.34.0)
+
+1. **REDIRECT-BASED ERRORS:** linkIdentity is redirect-based. On
+   rejection Supabase never returns an error to the calling code —
+   it navigates back to the app with ?error=server_error&error_code=
+   identity_already_exists&error_description=Identity+is+already+
+   linked+to+another+user. The in-code fallback after linkIdentity()
+   is unreachable for this error class. The fallback must live in the
+   RETURN path.
+2. **AUTO-RECOVER on identity errors:** handleOauthReturn parses BOTH
+   query string and hash fragment for error/error_code/error_
+   description. If error_code === 'identity_already_exists' OR
+   error_description contains 'already linked': console.log, await
+   sb.auth.signOut({scope:'local'}), set sessionStorage
+   ja_oauth_autoretry='1', then signInWithOAuth. User experiences
+   one extra bounce, not an error.
+3. **LOOP GUARD:** if ja_oauth_autoretry is ALREADY '1' when an
+   identity error arrives again, do NOT retry — clear guard, show
+   persistent error dialog with verbatim error_description. Clear
+   guard on any successful durable session.
+4. **VERBATIM ERROR DIALOG:** ALL other OAuth error params on return
+   -> persistent showAuthError rendering error_description VERBATIM.
+5. **v0.33 in-code fallback stays** (covers genuinely thrown
+   non-redirect errors). TRIPWIRE 18 extended: redirect-based auth
+   errors are handled at the RETURN, never assumed to reach the call
+   site.
 
 ## Auth clean decisions (final — from AUTHCLEAN_SPEC.md, v0.33.0)
 
@@ -974,5 +1001,15 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   (supersedes unpasted ORIGINFIX) — .farm canonical, onrender mirror
   works, PWAs work. TRIPWIRE 18 extended: auth flows origin-agnostic,
   zombie-tolerant, raw-error-surfacing.
+- ✅ Return fix (v0.34.0): linkIdentity is redirect-based — on rejection
+  Supabase navigates back with ?error_code=identity_already_exists, not
+  an in-code error. handleOauthReturn parses error/error_code/
+  error_description from BOTH query+hash. AUTO-RECOVER on identity
+  errors: signOut scope:local, set ja_oauth_autoretry guard,
+  signInWithOAuth (one extra bounce, not a stranding). Loop guard: if
+  autoretry already '1', stop and show verbatim error. Clear guard on
+  durable session. All OAuth errors now show verbatim error_description.
+  TRIPWIRE 18: redirect-based auth errors handled at RETURN, never
+  assumed to reach call site.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

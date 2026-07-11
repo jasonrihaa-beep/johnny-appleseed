@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.33.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.34.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -3812,17 +3812,51 @@ async function googleSignIn() {
 
 /* ── OAUTH RETURN (v0.12.0): acknowledge the landing ── */
 async function handleOauthReturn() {
-  // a) Surface OAuth errors verbatim, then clean the URL.
-  //    Marker stays — a retry may follow.
+  // a) Parse OAuth errors from BOTH query string and hash fragment
   const hashParams = new URLSearchParams((location.hash || '').replace(/^#/, ''));
   const searchParams = new URLSearchParams(location.search || '');
   const err = hashParams.get('error') || searchParams.get('error');
+  const errCode = hashParams.get('error_code') || searchParams.get('error_code');
   const errDesc = hashParams.get('error_description') || searchParams.get('error_description');
+
   if (err || errDesc) {
-    showAuthError(errDesc || err, { error: err, error_description: errDesc });
+    // AUTO-RECOVER on identity_already_exists: purge zombie + auto-retry
+    const isIdentityError = errCode === 'identity_already_exists' ||
+                           (errDesc && errDesc.toLowerCase().includes('already linked'));
+    if (isIdentityError) {
+      // Loop guard: if we already auto-retried once, stop and show error
+      let autoRetry = null;
+      try { autoRetry = sessionStorage.getItem('ja_oauth_autoretry'); } catch (e) {}
+      if (autoRetry === '1') {
+        // Already retried — clear guard and show error
+        try { sessionStorage.removeItem('ja_oauth_autoretry'); } catch (e) {}
+        console.error('Auto-retry failed, identity still exists:', errDesc);
+        showAuthError(errDesc || 'Identity is already linked to another user',
+                     { error: err, error_code: errCode, error_description: errDesc });
+        history.replaceState(null, '', location.pathname);
+        return;
+      }
+      // First identity error — auto-recover
+      console.log('Identity error detected, auto-recovering with fresh sign-in:', errDesc);
+      try { await sb.auth.signOut({ scope: 'local' }); } catch (signOutErr) { /* ignore */ }
+      try { sessionStorage.setItem('ja_oauth_autoretry', '1'); } catch (e) {}
+      history.replaceState(null, '', location.pathname);
+      // Redirect to Google sign-in
+      const { error } = await sb.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) {
+        showAuthError('Could not retry sign-in after identity error', error);
+      }
+      return;
+    }
+    // All other OAuth errors: show verbatim error_description
+    showAuthError(errDesc || err, { error: err, error_code: errCode, error_description: errDesc });
     history.replaceState(null, '', location.pathname);
     return;
   }
+
   // b/c) Return marker (tab-scoped sessionStorage, not sacred)
   let marker = null;
   try { marker = sessionStorage.getItem('ja_oauth_return'); } catch (e) {}
@@ -3836,6 +3870,8 @@ async function handleOauthReturn() {
       showAuthError("Google sign-in didn't complete. The session is still anonymous. Try again from your Profile.", { session });
       return;
     }
+    // Success: clear auto-retry guard
+    try { sessionStorage.removeItem('ja_oauth_autoretry'); } catch (e) {}
     showToast('Garden protected — Google');
     await loadOwnProfile(); // this re-renders hero, plants, stats
     renderProfileHero(); // explicit re-render
