@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.29.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.30.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
@@ -377,6 +377,31 @@ Written for the agent, not for humans.
    watermark removed, crossfade alignment preserved.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
+
+## Google fix decisions (final — from GOOGLEFIX_SPEC.md, v0.30.0)
+
+1. **AMENDS ONBOARD_GOOGLE (v0.11):** "linkIdentity ONLY, never
+   signInWithOAuth" was WRONG. Correct policy: attempt linkIdentity
+   FIRST (new-user path, keeps plants on fresh anon session); when it
+   fails with identity_already_exists, FALL BACK to signInWithOAuth
+   (returning-user path, switches to existing durable account). Both
+   flows are legitimate and required — the single-path approach left
+   returning users stranded.
+2. **Unified googleSignIn()** for both contexts (setup sheet + Profile
+   sign-in row). Removed setupSheetGoogle() duplicate. The OAuth
+   return flow never needs to know which button was tapped; it gates
+   the name-confirm sheet on "myProfile.display_name === 'Planter'",
+   not on which button launched the flow.
+3. **Error surface:** identity_already_exists is NEVER shown to the
+   user — it is an internal signal that the fallback path must run.
+   The fallback is attempted silently. Only the SECOND failure
+   (signInWithOAuth also failed) OR non-identity errors are surfaced.
+4. **ja_profile_prompted REMOVED** (was the setup-sheet-seen flag).
+   Renamed to ja_setup_seen in remaining setup-sheet code. One-time
+   cleanup on boot removes legacy ja_profile_prompted if present
+   (harmless if already gone).
+5. **ja_oauth_return marker** stays sessionStorage — tab-scoped,
+   ephemeral, set BEFORE the redirect (unchanged).
 
 ## Profile real data decisions (final — from PROFILE_REAL_SPEC.md, v0.29.0)
 
@@ -848,5 +873,10 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   real counts (Planted/Found). Feed already newest-first. Pull-to-refresh
   gesture + desktop ⟳ control on feed. OAuth return re-renders profile
   with real name + plants. Map unchanged (haze-dot fix is the next build).
+- ✅ Google fix (v0.30.0): unified googleSignIn() tries linkIdentity FIRST
+  (new-user path), silently falls back to signInWithOAuth on
+  identity_already_exists (returning-user path). Fixes "already linked to
+  another account" stranding. Removed setupSheetGoogle() duplicate.
+  ja_profile_prompted → ja_setup_seen; one-time cleanup on boot.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.29.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.30.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -3710,7 +3710,7 @@ let setupColor = null;
 async function getStartedFlow() {
   // Returning-visitor guard — flag is device-local, accepted (decision 4)
   let prompted = false;
-  try { prompted = localStorage.getItem('ja_profile_prompted') === '1'; } catch (e) {}
+  try { prompted = localStorage.getItem('ja_setup_seen') === '1'; } catch (e) {}
   enterApp();
   if (prompted) return;
   if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
@@ -3723,19 +3723,19 @@ async function getStartedFlow() {
   }
   if (!myProfile) await loadOwnProfile(); // Save needs the profile row
   try {
-    localStorage.setItem('ja_profile_prompted', '1');
-    if (localStorage.getItem('ja_profile_prompted') !== '1') return; // write failed
+    localStorage.setItem('ja_setup_seen', '1');
+    if (localStorage.getItem('ja_setup_seen') !== '1') return; // write failed
   } catch (e) { return; }
   openSetupSheet('Welcome to the neighborhood.', 'What should neighbors call you?');
 }
 
-// ja_profile_prompted is a SACRED key — one-shot, set at show so the
+// ja_setup_seen is a sacred key — one-shot, set at show so the
 // sheet can never fire twice from either trigger; never on app open
 function maybeShowSetupSheet() {
   try {
-    if (localStorage.getItem('ja_profile_prompted') === '1') return;
-    localStorage.setItem('ja_profile_prompted', '1');
-    if (localStorage.getItem('ja_profile_prompted') !== '1') return; // write failed
+    if (localStorage.getItem('ja_setup_seen') === '1') return;
+    localStorage.setItem('ja_setup_seen', '1');
+    if (localStorage.getItem('ja_setup_seen') !== '1') return; // write failed
   } catch (e) { return; }
   openSetupSheet();
 }
@@ -3757,7 +3757,7 @@ function openSetupSheet(title, body, prefillName, hideGoogle) {
   // linked; offering Continue with Google would be a dead button (rule 9)
   const googleBlock = hideGoogle ? '' : `
     <div class="sheet-divider"></div>
-    <button class="google-btn" onclick="setupSheetGoogle()">
+    <button class="google-btn" onclick="googleSignIn()">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.2A8.5 8.5 0 1 1 18 6"/><path d="M21 12h-9"/></svg>
       Continue with Google
     </button>
@@ -3781,31 +3781,25 @@ function pickSetupColor(btn) {
 // Google from the setup sheet — both contexts arrive here with an
 // anonymous session (getStartedFlow and first-log both ran ensureAuth),
 // so linkIdentity is correct; never signInWithOAuth here.
-async function setupSheetGoogle() {
+async function googleSignIn() {
   if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
-  // Flag BEFORE redirect — OAuth leaves the page, so the flag must not
-  // depend on returning (decision 2). Read-back verified.
-  try {
-    localStorage.setItem('ja_profile_prompted', '1');
-    if (localStorage.getItem('ja_profile_prompted') !== '1') {
-      showToast('Could not save setup state — try again');
-      return;
-    }
-  } catch (e) {
-    showToast('Could not save setup state — try again');
-    return;
-  }
   try {
     // Tab-scoped return marker — NOT a sacred ja_ localStorage key
     try { sessionStorage.setItem('ja_oauth_return', '1'); } catch (e) {}
-    const { error } = await sb.auth.linkIdentity({
-      provider: 'google',
-      options: { redirectTo: 'https://johnny-appleseed.onrender.com' }
-    });
-    if (error) throw error;
+    const opts = { provider: 'google', options: { redirectTo: 'https://johnny-appleseed.onrender.com' } };
+    // Try linkIdentity FIRST (new-user path, keeps plants on anon session)
+    let { error } = await sb.auth.linkIdentity(opts);
+    if (error) {
+      // identity_already_exists = returning user, Google already linked to another account
+      if (error.message && error.message.includes('identity_already_exists')) {
+        // Silently fall back to sign in — switches to the existing durable account
+        ({ error } = await sb.auth.signInWithOAuth(opts));
+      }
+      if (error) throw error; // Second failure OR non-identity error
+    }
     // Browser redirects to Google from here
   } catch (e) {
-    // Sheet stays open for this presentation; flag already set (accepted tradeoff)
+    try { sessionStorage.removeItem('ja_oauth_return'); } catch (ex) {}
     showToast(e.message || 'Could not start Google sign-in');
   }
 }
@@ -3850,8 +3844,7 @@ async function handleOauthReturn() {
         const full = meta.full_name || meta.name || '';
         suggest = String(full).trim().split(/\s+/)[0] || '';
       }
-      // Gated by marker + default name only — never reads/writes
-      // ja_profile_prompted (decision 3)
+      // Gated by marker + default name only (decision 3)
       openSetupSheet('Garden protected.', 'What should neighbors call you?', suggest, true);
     }
   } catch (e) {
@@ -4070,26 +4063,6 @@ function renderEmailRow(user) {
 }
 
 /* ── S4d GOOGLE SIGN-IN + GUARDED SIGN OUT ── */
-async function googleSignIn() {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    const opts = { redirectTo: 'https://johnny-appleseed.onrender.com' };
-    let error;
-    if (session && session.user.is_anonymous) {
-      // Link Google to the anonymous identity — same auth.uid(), plants kept
-      // Tab-scoped return marker — NOT a sacred ja_ localStorage key
-      try { sessionStorage.setItem('ja_oauth_return', '1'); } catch (e) {}
-      ({ error } = await sb.auth.linkIdentity({ provider: 'google', options: opts }));
-    } else {
-      ({ error } = await sb.auth.signInWithOAuth({ provider: 'google', options: opts }));
-    }
-    if (error) throw error;
-    // Browser redirects to Google from here
-  } catch (e) {
-    showToast(e.message || 'Could not start Google sign-in');
-  }
-}
 
 function confirmSignOut() {
   openSheet(
@@ -4171,6 +4144,9 @@ function showToast(msg) {
 
 // Init: set map mode on load since map is the default tab
 document.addEventListener('DOMContentLoaded', () => {
+  // v0.30.0: clean up legacy ja_profile_prompted (one-time, harmless if already gone)
+  try { localStorage.removeItem('ja_profile_prompted'); } catch (e) {}
+
   document.getElementById('topbar').classList.add('map-mode');
   document.body.classList.add('tab-map');
   initMap();
