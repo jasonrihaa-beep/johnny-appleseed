@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.30.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.31.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -3778,15 +3778,15 @@ function pickSetupColor(btn) {
   document.querySelectorAll('.setup-color').forEach(b => b.classList.toggle('selected', b === btn));
 }
 
-// Google from the setup sheet — both contexts arrive here with an
-// anonymous session (getStartedFlow and first-log both ran ensureAuth),
-// so linkIdentity is correct; never signInWithOAuth here.
+// Unified Google sign-in for both contexts (setup sheet + Profile row).
+// Tries linkIdentity FIRST (new anonymous users, keeps plants), then falls
+// back to signInWithOAuth on identity_already_exists (returning users).
 async function googleSignIn() {
   if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
   try {
     // Tab-scoped return marker — NOT a sacred ja_ localStorage key
     try { sessionStorage.setItem('ja_oauth_return', '1'); } catch (e) {}
-    const opts = { provider: 'google', options: { redirectTo: 'https://johnny-appleseed.onrender.com' } };
+    const opts = { provider: 'google', options: { redirectTo: 'https://johnnyappleseed.farm' } };
     // Try linkIdentity FIRST (new-user path, keeps plants on anon session)
     let { error } = await sb.auth.linkIdentity(opts);
     if (error) {
@@ -4144,9 +4144,6 @@ function showToast(msg) {
 
 // Init: set map mode on load since map is the default tab
 document.addEventListener('DOMContentLoaded', () => {
-  // v0.30.0: clean up legacy ja_profile_prompted (one-time, harmless if already gone)
-  try { localStorage.removeItem('ja_profile_prompted'); } catch (e) {}
-
   document.getElementById('topbar').classList.add('map-mode');
   document.body.classList.add('tab-map');
   initMap();

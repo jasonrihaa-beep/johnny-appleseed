@@ -7,10 +7,10 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.30.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.31.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
-- Deploy: GitHub → Render static site, auto-deploy on push to `main` — live at https://johnny-appleseed.onrender.com
+- Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
 - Brand: Fraunces (serif, headlines) + DM Sans (body). Deep forest green + harvest gold + violet (pollinators). **No emojis anywhere — inline stroke SVG icons only** (stroke-width 1.6–1.8, currentColor).
 
 ## Stack
@@ -378,6 +378,28 @@ Written for the agent, not for humans.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
 
+## Domain fix decisions (final — from DOMAINFIX_SPEC.md, v0.31.0)
+
+1. **Canonical domain:** https://johnnyappleseed.farm (custom domain,
+   certificate issued). All OAuth redirectTo values point there. The
+   onrender.com URL remains a working mirror but is no longer the
+   canonical app URL.
+2. **SACRED KEY VIOLATION reverted:** v0.30.0 added
+   `localStorage.removeItem('ja_profile_prompted')` — DEFECT. That
+   key is on the sacred list (BUILD_RULES rule 10); removing it
+   re-opens the one-shot setup sheet for users who already dismissed
+   it. The removal code was DELETED in v0.31.0. The key persists with
+   its original semantics. No spec authorized the removal and none
+   will — sacred keys are never removed without an explicit migration
+   decision in a spec.
+3. **Reaffirm BUILD_RULES:** a build implements ONLY what its spec
+   states. Unrequested changes to sacred keys, schema, or protected
+   state are defects even when well-intentioned.
+4. **False comment removed:** the comment above googleSignIn ("so
+   linkIdentity is correct; never signInWithOAuth here") was FALSE
+   and caused the returning-user bug. Replaced with accurate
+   description of the link-then-signin fallback.
+
 ## Google fix decisions (final — from GOOGLEFIX_SPEC.md, v0.30.0)
 
 1. **AMENDS ONBOARD_GOOGLE (v0.11):** "linkIdentity ONLY, never
@@ -396,10 +418,10 @@ Written for the agent, not for humans.
    user — it is an internal signal that the fallback path must run.
    The fallback is attempted silently. Only the SECOND failure
    (signInWithOAuth also failed) OR non-identity errors are surfaced.
-4. **ja_profile_prompted REMOVED** (was the setup-sheet-seen flag).
-   Renamed to ja_setup_seen in remaining setup-sheet code. One-time
-   cleanup on boot removes legacy ja_profile_prompted if present
-   (harmless if already gone).
+4. **ja_profile_prompted renamed to ja_setup_seen** in v0.30.0 setup
+   code (getStartedFlow + maybeShowSetupSheet). v0.30.0 WRONGLY added
+   a cleanup line removing ja_profile_prompted — REVERTED in v0.31.0
+   (sacred-key violation).
 5. **ja_oauth_return marker** stays sessionStorage — tab-scoped,
    ephemeral, set BEFORE the redirect (unchanged).
 
@@ -878,5 +900,12 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   identity_already_exists (returning-user path). Fixes "already linked to
   another account" stranding. Removed setupSheetGoogle() duplicate.
   ja_profile_prompted → ja_setup_seen; one-time cleanup on boot.
+- ✅ Domain fix (v0.31.0): canonical URL → https://johnnyappleseed.farm
+  (custom domain, all OAuth redirects point there). onrender.com works
+  but .farm is production. REVERTED sacred-key violation: v0.30.0
+  removal of ja_profile_prompted was unauthorized; deletion code
+  removed, key persists. False comment deleted (the one that caused the
+  Google bug). Reaffirm: builds implement ONLY their spec, no
+  unrequested changes to sacred keys or schema.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
