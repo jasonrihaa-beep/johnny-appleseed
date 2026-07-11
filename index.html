@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.31.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.32.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -3780,27 +3780,32 @@ function pickSetupColor(btn) {
 
 // Unified Google sign-in for both contexts (setup sheet + Profile row).
 // Tries linkIdentity FIRST (new anonymous users, keeps plants), then falls
-// back to signInWithOAuth on identity_already_exists (returning users).
+// back to signInWithOAuth on ANY link error (returning users).
 async function googleSignIn() {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showAuthError('Sharing is offline right now — try again later'); return; }
   try {
     // Tab-scoped return marker — NOT a sacred ja_ localStorage key
     try { sessionStorage.setItem('ja_oauth_return', '1'); } catch (e) {}
     const opts = { provider: 'google', options: { redirectTo: 'https://johnnyappleseed.farm' } };
-    // Try linkIdentity FIRST (new-user path, keeps plants on anon session)
-    let { error } = await sb.auth.linkIdentity(opts);
-    if (error) {
-      // identity_already_exists = returning user, Google already linked to another account
-      if (error.message && error.message.includes('identity_already_exists')) {
-        // Silently fall back to sign in — switches to the existing durable account
+    const { data: { session } } = await sb.auth.getSession();
+    let error;
+    if (session && session.user.is_anonymous) {
+      // Anonymous session: try linkIdentity FIRST (keeps plants)
+      ({ error } = await sb.auth.linkIdentity(opts));
+      if (error) {
+        // ANY link error -> fall back to sign-in (unconditional, no string matching)
+        console.error('linkIdentity failed, falling back to signInWithOAuth:', error);
         ({ error } = await sb.auth.signInWithOAuth(opts));
       }
-      if (error) throw error; // Second failure OR non-identity error
+    } else {
+      // No session or already durable -> sign in directly
+      ({ error } = await sb.auth.signInWithOAuth(opts));
     }
+    if (error) throw error;
     // Browser redirects to Google from here
   } catch (e) {
     try { sessionStorage.removeItem('ja_oauth_return'); } catch (ex) {}
-    showToast(e.message || 'Could not start Google sign-in');
+    showAuthError(e.message || 'Could not start Google sign-in', e);
   }
 }
 
@@ -3813,7 +3818,7 @@ async function handleOauthReturn() {
   const err = hashParams.get('error') || searchParams.get('error');
   const errDesc = hashParams.get('error_description') || searchParams.get('error_description');
   if (err || errDesc) {
-    showToast(errDesc || err);
+    showAuthError(errDesc || err, { error: err, error_description: errDesc });
     history.replaceState(null, '', location.pathname);
     return;
   }
@@ -3827,7 +3832,7 @@ async function handleOauthReturn() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session || session.user.is_anonymous !== false) {
       // c) marker set but still anonymous — link failed upstream
-      showToast("Google sign-in didn't complete. Try again from your Profile.");
+      showAuthError("Google sign-in didn't complete. The session is still anonymous. Try again from your Profile.", { session });
       return;
     }
     showToast('Garden protected — Google');
@@ -3848,7 +3853,7 @@ async function handleOauthReturn() {
       openSetupSheet('Garden protected.', 'What should neighbors call you?', suggest, true);
     }
   } catch (e) {
-    showToast(e.message || 'Could not finish sign-in');
+    showAuthError(e.message || 'Could not finish sign-in', e);
   }
 }
 
@@ -4038,28 +4043,25 @@ function renderEmailRow(user) {
   const keepRow = document.getElementById('email-upgrade-row');
   const signInRow = document.getElementById('sign-in-row');
   const signOutRow = document.getElementById('sign-out-row');
-  if (!user) {
-    // Signed-out browse mode: Sign in row only
+  if (!user || user.is_anonymous === true) {
+    // No session OR anonymous session: always show Sign in with Google
     keepRow.style.display = 'none';
     document.getElementById('email-upgrade-edit').classList.remove('visible');
     signInRow.style.display = '';
     signOutRow.style.display = 'none';
     return;
   }
+  // Durable session (non-anonymous): show protected state
   signInRow.style.display = 'none';
   keepRow.style.display = '';
-  if (user.is_anonymous === false) {
-    const provider = (user.app_metadata && user.app_metadata.provider) || 'email';
-    document.getElementById('email-upgrade-label').textContent = 'Garden protected';
-    document.getElementById('email-upgrade-value').textContent =
-      provider === 'google' ? 'Google' : (user.email || 'Linked');
-    keepRow.dataset.protected = '1';
-    document.getElementById('email-upgrade-edit').classList.remove('visible');
-    // Sign out ONLY for non-anonymous sessions (tripwire 12)
-    signOutRow.style.display = '';
-  } else {
-    signOutRow.style.display = 'none';
-  }
+  const provider = (user.app_metadata && user.app_metadata.provider) || 'email';
+  document.getElementById('email-upgrade-label').textContent = provider === 'google' ? 'Signed in with Google' : 'Garden protected';
+  document.getElementById('email-upgrade-value').textContent =
+    provider === 'google' ? (user.email || 'Google account') : (user.email || 'Linked');
+  keepRow.dataset.protected = '1';
+  document.getElementById('email-upgrade-edit').classList.remove('visible');
+  // Sign out ONLY for non-anonymous sessions (tripwire 12)
+  signOutRow.style.display = '';
 }
 
 /* ── S4d GOOGLE SIGN-IN + GUARDED SIGN OUT ── */
@@ -4132,6 +4134,16 @@ function bumpLogCount() {
       setTimeout(() => showToast('Add an email in Profile to keep your garden'), 3200);
     }
   } catch (e) { /* storage unavailable — nudge is best-effort */ }
+}
+
+function showAuthError(msg, rawError) {
+  const title = 'Could not sign in';
+  const detail = rawError ? `${msg}\n\nRaw error: ${JSON.stringify(rawError)}` : msg;
+  openSheet(
+    [{ label: 'Dismiss', handler: closeSheet }],
+    title,
+    detail
+  );
 }
 
 function showToast(msg) {

@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.31.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.32.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -377,6 +377,32 @@ Written for the agent, not for humans.
    watermark removed, crossfade alignment preserved.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
+
+## Google fix 2 decisions (final — from GOOGLEFIX2_SPEC.md, v0.32.0)
+
+1. **NEVER pattern-match fragile provider error strings.** New policy:
+   if linkIdentity() fails for ANY reason on an anonymous session,
+   fall back to signInWithOAuth() unconditionally. v0.30.0 checked for
+   literal 'identity_already_exists' but Supabase returns
+   "Identity is already linked to another user" — the match failed,
+   fallback never fired, returning users stranded. Log the raw link
+   error to console for diagnostics before falling back.
+2. **Auth errors must be READABLE:** failed auth attempts show a
+   persistent, dismissible sheet (not a 2-second toast). New
+   showAuthError() function reuses existing sheet styling, includes
+   raw provider message so user can report it. Same treatment in
+   handleOauthReturn() for return-path errors.
+3. **NEVER strand the user:** Profile always renders "Sign in with
+   Google" row whenever there is no durable session (no session at
+   all, OR session.user.is_anonymous === true) — including after a
+   failed attempt. Explicit check in renderEmailRow().
+4. **Success must be UNAMBIGUOUS:** on durable session, Profile shows
+   "Signed in with Google" + account email (if available) instead of
+   generic "Garden protected". Clear persistent confirmation, not just
+   the return toast.
+5. **TRIPWIRE 18 (v0.30) strengthened:** every Google entry point
+   handles BOTH link and sign-in; fallback must not depend on
+   error-string matching (brittle, provider can change wording).
 
 ## Domain fix decisions (final — from DOMAINFIX_SPEC.md, v0.31.0)
 
@@ -907,5 +933,13 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   removed, key persists. False comment deleted (the one that caused the
   Google bug). Reaffirm: builds implement ONLY their spec, no
   unrequested changes to sacred keys or schema.
+- ✅ Google fix 2 (v0.32.0): unconditional fallback — if linkIdentity
+  fails for ANY reason on anonymous session, fall back to signInWithOAuth
+  (no fragile error-string matching). v0.30.0 checked for literal
+  'identity_already_exists' but Supabase returns "Identity is already
+  linked" — match failed, fallback never fired. Persistent auth errors
+  (dismissible sheet, not toast) with raw provider message. Never strand:
+  Profile always shows "Sign in with Google" when session is anonymous.
+  Unambiguous success: "Signed in with Google" + email.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
