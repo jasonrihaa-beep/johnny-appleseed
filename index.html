@@ -1458,27 +1458,6 @@ body.tab-map #map-view {
   stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
 }
 
-/* AI badge */
-.ai-banner {
-  margin: 0 12px 16px; /* v0.26.0 aligned with feed cards */
-  padding: 12px 14px;
-  background: rgba(85,136,102,0.12); /* v0.25.0 dark-compatible */
-  border: 1px solid rgba(85,136,102,0.25);
-  border-radius: 10px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.ai-banner-icon {
-  width: 20px; height: 20px;
-  flex-shrink: 0;
-  margin-top: 1px;
-  stroke: var(--green-600); fill: none;
-  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
-}
-.ai-banner-text { font-size: 12px; color: var(--stone-700); line-height: 1.5; } /* v0.26.0 light text for legibility */
-.ai-banner-text strong { font-weight: 500; display: block; margin-bottom: 1px; color: var(--ink); } /* v0.26.0 light title */
-
 /* ── LOCATION BAR ── */
 #location-bar {
   display: flex;
@@ -1857,20 +1836,12 @@ body.tab-map #map-view {
 
       <div id="location-bar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span id="location-text"><span data-i18n="location_showing"></span> <strong data-i18n="location_cibolo"></strong></span>
+        <span id="location-text"></span>
       </div>
 
       <div id="feed-pills">
         <button class="filter-pill active" onclick="setFeedMode('nearby', this)" data-i18n="feed_nearby"></button>
         <button class="filter-pill" onclick="setFeedMode('following', this)" data-i18n="feed_following"></button>
-      </div>
-
-      <div class="ai-banner">
-        <svg class="ai-banner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
-        <div class="ai-banner-text">
-          <strong data-i18n="feed_ai_banner_title"></strong>
-          <span data-i18n="feed_ai_banner_body"></span>
-        </div>
       </div>
 
       <div class="feed-section-label" data-i18n="feed_section_recent"><button id="feed-refresh-btn" onclick="refreshFeed()" aria-label="Refresh feed" style="background:none;border:none;color:var(--green-400);font-size:18px;margin-left:8px;cursor:pointer;padding:0;vertical-align:middle">⟳</button></div>
@@ -2071,7 +2042,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.36.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.36.1 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2146,13 +2117,10 @@ const STR = {
     tab_plant: "Plant",
     tab_profile: "Profile",
     // Location bar
-    location_showing: "Showing plants near",
-    location_cibolo: "Cibolo, TX",
+    location_showing: "Showing plants near {place}",
     // Feed
     feed_nearby: "Nearby",
     feed_following: "Following",
-    feed_ai_banner_title: "Plant intelligence active",
-    feed_ai_banner_body: "Each plant below is scored for your location, season, and soil conditions.",
     feed_section_recent: "Recent plantings nearby",
     feed_empty_title: "No plantings nearby yet",
     feed_empty_sub: "Be the first in your area to log a planting.\nEvery pin on the map is a gift to a neighbor.",
@@ -4316,6 +4284,8 @@ function showToast(msg) {
 // Init: set map mode on load since map is the default tab
 document.addEventListener('DOMContentLoaded', () => {
   applyStrings(); // v0.36.0: i18n static markup
+  // v0.36.1: location bar template with data interpolation
+  document.getElementById('location-text').textContent = t('location_showing', { place: REGION.name });
   document.getElementById('topbar').classList.add('map-mode');
   document.body.classList.add('tab-map');
   initMap();

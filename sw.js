@@ -1,4 +1,4 @@
-const CACHE = 'appleseed-v0-36-0';
+const CACHE = 'appleseed-v0-36-1';
 // Hero video (assets/hero-video.mp4) excluded — 2.9MB, network-only.
 // Hero still (assets/hero-image.jpg) network-fallback for bandwidth.
 const PRECACHE = ['/', '/index.html', '/manifest.json'];
