@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.34.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.35.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -307,13 +307,15 @@ Written for the agent, not for humans.
    --ink → #F5F1E8 (warm off-white). Added --glass:
    rgba(28,43,34,0.72), --glass-border: rgba(245,241,232,0.14),
    --glow-amber: rgba(244,161,39,0.22).
-4. **Tripwire 17 — the map is off-limits this build.** #leaflet-map,
-   L.circle rendering, addHazeCircle, the access opacity tiers
-   (0.25/0.15/0.08), and all popup styling are NOT touched.
-   backdrop-filter is NEVER applied over the map (Leaflet pan/zoom +
-   blur destroys framerate on mid-range Android). The map keeps its
-   current appearance; a later build re-tunes circles for dark
-   deliberately.
+4. **Tripwire 17 — map frozen, narrow exception consumed by v0.35.0.**
+   #leaflet-map, L.circle rendering (radius 75m, access opacity tiers
+   0.25/0.15/0.08 UNCHANGED), addHazeCircle, colors, popup CONTENT,
+   pick mode are frozen. v0.35.0 (HAZEDOT) consumed a narrow
+   exception: dot visibility logic and circle popup bindings were
+   edited; all other map elements untouched. After v0.35.0 the map
+   re-freezes with NO further exceptions. backdrop-filter is NEVER
+   applied over the map (Leaflet pan/zoom + blur destroys framerate
+   on mid-range Android).
 5. **Contrast floor:** body text on any surface >= 4.5:1, large/
    secondary text >= 3:1. Amber accent (#F4A127) is for glow, emphasis,
    and the wordmark accent — never for body text on dark (fails
@@ -377,6 +379,30 @@ Written for the agent, not for humans.
    watermark removed, crossfade alignment preserved.
 6. **Coming-soon stub inventory:** Search (topbar), AI key (settings),
    Feed radius (settings), Planting reminders (settings).
+
+## Haze dot decisions (final — from HAZEDOT_SPEC.md, v0.35.0)
+
+1. **DOT_HIDE_ZOOM = 16** (named constant). At map zoom >= 16 the
+   center dots are removed from the map; below 16 they render as
+   before. Rationale: at zoom 16 the 75m circle is ~55px across — a
+   comfortable tap target; the dot has no locator job left and only
+   overclaims precision. Hard disappear, no fade.
+2. **Popups bind to the CIRCLE** as well as the dot (same content,
+   same options). Far zoom: dot is the practical tap target. Close
+   zoom: the circle is. Tap behavior works in both regimes.
+3. **Implementation:** all dot markers collected in a single
+   L.layerGroup (dotMarkers); one 'zoomend' listener adds/removes
+   the whole group vs DOT_HIDE_ZOOM. Set initial state from map's
+   starting zoom. No per-marker listeners, no opacity animation.
+   renderMarkers clears dotMarkers.clearLayers() on rebuild (pins
+   reload on tab switch).
+4. **Example pins (PIN_SPOTS) follow identical rules** — one
+   rendering path, no special cases.
+5. **Tripwire 17 exception consumed:** this build edited dot
+   visibility logic and circle popup bindings. It did NOT change:
+   circle radius (75m), access opacity tiers (0.25/0.15/0.08),
+   colors, popup CONTENT, pick mode. After v0.35.0 the map
+   re-freezes with NO further exceptions.
 
 ## Return fix decisions (final — from RETURNFIX_SPEC.md, v0.34.0)
 
@@ -1011,5 +1037,13 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   durable session. All OAuth errors now show verbatim error_description.
   TRIPWIRE 18: redirect-based auth errors handled at RETURN, never
   assumed to reach call site.
+- ✅ Haze dot (v0.35.0): DOT_HIDE_ZOOM = 16. At zoom >= 16 center dots
+  disappear entirely (circle is sufficient tap target, dot overclaims
+  precision). Popups bind to BOTH circle and dot — tap works in both
+  regimes. All dots in L.layerGroup, one zoomend listener toggles the
+  group. Access tiers 0.25/0.15/0.08 UNCHANGED (regression check
+  passed). TRIPWIRE 17 exception consumed: dot visibility + circle
+  popups edited; all else frozen. Map re-freezes after v0.35.0, NO
+  further exceptions. Acceptance list fully cleared.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

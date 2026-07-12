@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.34.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.35.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2143,7 +2143,9 @@ let currentFilter = 'all';
 /* ── MAP ── */
 let map = null;
 let markers = [];
+let dotMarkers = null; // L.layerGroup for center dots, toggled at DOT_HIDE_ZOOM
 const PIN_COLORS = { edible: '#D97B1A', wildlife: '#335736', pollinator: '#6D28D9', both: '#4A7C59' };
+const DOT_HIDE_ZOOM = 16; // Dots disappear at zoom >= 16 (circle is sufficient tap target)
 
 /* ── PLANT INTELLIGENCE v1 — Central/South Texas (Zone 8b/9a) ──
    Sources: Bexar County Master Gardeners planting calendar,
@@ -2345,10 +2347,11 @@ function addHazeCircle(lat, lng, type, access, popupHtml) {
     weight: access === 'public' ? 2 : 1.5,
     fillColor: isPrivate ? '#8A9988' : typeColor,
     fillOpacity: fillOp
-  }).addTo(map).bindPopup(popupHtml);
+  }).addTo(map).bindPopup(popupHtml); // Circle gets popup too (task 1)
   const dot = L.marker([lat, lng], { icon: dotIcon(isPrivate ? '#8A9988' : typeColor, isPrivate) })
-    .addTo(map).bindPopup(popupHtml);
-  markers.push(circle, dot);
+    .bindPopup(popupHtml); // Dot popup binds before adding to group
+  dotMarkers.addLayer(dot); // Add dot to the layerGroup, not directly to map
+  markers.push(circle); // Only track circles in markers array (dots managed by dotMarkers group)
 }
 
 function initMap() {
@@ -2365,6 +2368,20 @@ function initMap() {
       maxZoom: 19,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+    // Dot markers layerGroup + zoom toggle (task 2)
+    dotMarkers = L.layerGroup().addTo(map);
+    map.on('zoomend', () => {
+      const z = map.getZoom();
+      if (z >= DOT_HIDE_ZOOM) {
+        if (map.hasLayer(dotMarkers)) map.removeLayer(dotMarkers);
+      } else {
+        if (!map.hasLayer(dotMarkers)) map.addLayer(dotMarkers);
+      }
+    });
+    // Set initial dot visibility from starting zoom
+    if (map.getZoom() >= DOT_HIDE_ZOOM) {
+      map.removeLayer(dotMarkers);
+    }
     map.on('popupopen', onPinPopupOpen); // lazy inspire-count fetch, DB pins only
     renderMarkers('all');
     loadDbPins();
@@ -2377,6 +2394,8 @@ function renderMarkers(filter) {
   currentFilter = filter;
   markers.forEach(m => map.removeLayer(m));
   markers = [];
+  // Clear and rebuild dotMarkers group (pins reload on tab switch)
+  if (dotMarkers) dotMarkers.clearLayers();
   // Demo pins (PIN_SPOTS): no access data, so the 'open' filter hides them;
   // circle rendering at the ask-tier neutral treatment (decision 6)
   PIN_SPOTS.forEach(spot => {
