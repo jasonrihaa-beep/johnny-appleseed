@@ -1859,87 +1859,87 @@ body.tab-map #map-view {
     <!-- PLANT VIEW -->
     <div id="plant-view" class="view">
       <div class="plant-view-header">
-        <h2 class="plant-view-title">Log a planting</h2>
-        <p class="plant-view-subtitle">We'll check timing, zone, and soil conditions for you.</p>
+        <h2 class="plant-view-title" data-i18n="plant_title"></h2>
+        <p class="plant-view-subtitle" data-i18n="plant_subtitle"></p>
       </div>
 
       <div class="form-group">
-        <label class="form-label">What happened?</label>
+        <label class="form-label" data-i18n="plant_what_happened"></label>
         <div class="tag-row">
-          <button class="kind-option selected" onclick="selectKind(this,'planted')">I planted this</button>
-          <button class="kind-option" onclick="selectKind(this,'discovered')">I found this</button>
+          <button class="kind-option selected" onclick="selectKind(this,'planted')" data-i18n="plant_i_planted"></button>
+          <button class="kind-option" onclick="selectKind(this,'discovered')" data-i18n="plant_i_found"></button>
         </div>
       </div>
 
       <div class="form-group" style="position:relative">
-        <label class="form-label" for="plant-name">Plant name</label>
-        <input class="form-input" id="plant-name" type="text" placeholder="e.g. Fig tree, Blackberry, Pecan..." autocomplete="off" oninput="onPlantInput(this)">
+        <label class="form-label" for="plant-name" data-i18n="plant_name_label"></label>
+        <input class="form-input" id="plant-name" type="text" data-i18n-attr="placeholder:plant_name_placeholder" autocomplete="off" oninput="onPlantInput(this)">
         <div id="plant-suggest"></div>
       </div>
 
       <div id="found-info"></div>
 
       <div class="form-group">
-        <label class="form-label" for="plant-location">Location</label>
-        <input class="form-input" id="plant-location" type="text" placeholder="Captured automatically when you log" readonly onclick="showToast('Location is captured when you log — GPS, or map center as fallback')">
+        <label class="form-label" for="plant-location" data-i18n="plant_location_label"></label>
+        <input class="form-input" id="plant-location" type="text" data-i18n-attr="placeholder:plant_location_placeholder" readonly onclick="showToast(t('plant_location_toast'))">
       </div>
 
       <div class="form-group">
-        <label class="form-label">Type</label>
+        <label class="form-label" data-i18n="plant_type_label"></label>
         <div class="tag-row">
-          <button class="tag-option edible" onclick="selectTag(this,'edible')">Edible</button>
-          <button class="tag-option wildlife selected wildlife" onclick="selectTag(this,'wildlife')">Wildlife</button>
-          <button class="tag-option pollinator" onclick="selectTag(this,'pollinator')">Pollinators</button>
-          <button class="tag-option both" onclick="selectTag(this,'both')">All of the above</button>
+          <button class="tag-option edible" onclick="selectTag(this,'edible')" data-i18n="plant_type_edible"></button>
+          <button class="tag-option wildlife selected wildlife" onclick="selectTag(this,'wildlife')" data-i18n="plant_type_wildlife"></button>
+          <button class="tag-option pollinator" onclick="selectTag(this,'pollinator')" data-i18n="plant_type_pollinators"></button>
+          <button class="tag-option both" onclick="selectTag(this,'both')" data-i18n="plant_type_all"></button>
         </div>
       </div>
 
       <!-- v0.16.0 location row — location is never guessed silently (tripwire 15) -->
       <div class="form-group">
-        <label class="form-label">Location</label>
+        <label class="form-label" data-i18n="plant_location_label"></label>
         <div id="location-row">
           <span id="loc-dot" class="none"></span>
           <div id="loc-texts">
-            <div id="loc-primary">No location yet</div>
-            <div id="loc-source">No location yet</div>
+            <div id="loc-primary" data-i18n="plant_loc_none"></div>
+            <div id="loc-source" data-i18n="plant_loc_none"></div>
           </div>
           <div id="loc-actions">
-            <button type="button" class="loc-btn" onclick="refreshLocation()">Refresh</button>
-            <button type="button" class="loc-btn" onclick="startMapPick()">Place on map</button>
+            <button type="button" class="loc-btn" onclick="refreshLocation()" data-i18n="plant_loc_refresh"></button>
+            <button type="button" class="loc-btn" onclick="startMapPick()" data-i18n="plant_loc_map"></button>
           </div>
         </div>
-        <button type="button" id="loc-center-btn" class="loc-btn" style="display:none" onclick="useMapCenter()">Use map center</button>
-        <p class="form-caption" id="loc-hint" style="display:none">Turn on precise location for Chrome, or place the pin on the map.</p>
-        <p class="form-caption" id="loc-found-hint" style="display:none">Log where you found it &mdash; place on the map if you're logging later.</p>
-        <p class="form-caption">Published at neighborhood precision (~100 m).</p>
+        <button type="button" id="loc-center-btn" class="loc-btn" style="display:none" onclick="useMapCenter()" data-i18n="plant_loc_use_center"></button>
+        <p class="form-caption" id="loc-hint" style="display:none" data-i18n="plant_loc_hint"></p>
+        <p class="form-caption" id="loc-found-hint" style="display:none" data-i18n="plant_loc_found_hint"></p>
+        <p class="form-caption" data-i18n="plant_loc_precision"></p>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Who can reach it?</label>
+        <label class="form-label" data-i18n="plant_access_label"></label>
         <div class="tag-row">
-          <button class="tag-option access-option" onclick="selectAccess(this,'public')">Open spot</button>
-          <button class="tag-option access-option" onclick="selectAccess(this,'ask')">Ask first</button>
-          <button class="tag-option access-option" onclick="selectAccess(this,'private')">My yard</button>
+          <button class="tag-option access-option" onclick="selectAccess(this,'public')" data-i18n="plant_access_open"></button>
+          <button class="tag-option access-option" onclick="selectAccess(this,'ask')" data-i18n="plant_access_ask"></button>
+          <button class="tag-option access-option" onclick="selectAccess(this,'private')" data-i18n="plant_access_private"></button>
         </div>
-        <p class="form-caption">Open spots mean parks, parkways, and community gardens &mdash; where planting is permitted.</p>
+        <p class="form-caption" data-i18n="plant_access_caption"></p>
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="plant-note">Note (optional)</label>
-        <input class="form-input" id="plant-note" type="text" placeholder="Soil prep, method, observations..." maxlength="255">
+        <label class="form-label" for="plant-note" data-i18n="plant_note_label"></label>
+        <input class="form-input" id="plant-note" type="text" data-i18n-attr="placeholder:plant_note_placeholder" maxlength="255">
       </div>
 
       <!-- v0.15.0 photo picker — no upload at selection time; compress + upload happen in submitPlant -->
       <div class="form-group">
-        <label class="form-label" for="plant-photo-input">Photo (optional)</label>
+        <label class="form-label" for="plant-photo-input" data-i18n="plant_photo_label"></label>
         <label id="photo-picker" for="plant-photo-input">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          Add a photo
+          <span data-i18n="plant_photo_add"></span>
         </label>
         <input type="file" id="plant-photo-input" accept="image/*" onchange="onPhotoPick(this)">
         <div id="photo-preview-wrap">
-          <img id="photo-preview-img" alt="Photo preview">
-          <button type="button" id="photo-remove-btn" aria-label="Remove photo" onclick="removePhoto()">
+          <img id="photo-preview-img" data-i18n-attr="alt:plant_photo_preview_alt">
+          <button type="button" id="photo-remove-btn" data-i18n-attr="aria-label:plant_photo_remove_label" onclick="removePhoto()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
         </div>
@@ -1949,22 +1949,22 @@ body.tab-map #map-view {
       <div id="score-preview">
         <div class="score-header">
           <div>
-            <div style="font-size:11px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase;color:var(--stone-500);margin-bottom:4px">Plant score</div>
+            <div style="font-size:11px;font-weight:500;letter-spacing:0.8px;text-transform:uppercase;color:var(--stone-500);margin-bottom:4px" data-i18n="score_title"></div>
             <div class="score-number" id="score-num">94</div>
           </div>
-          <div class="score-status" id="score-status">Plant now</div>
+          <div class="score-status" id="score-status" data-i18n="score_plant_now"></div>
         </div>
         <div class="score-bar-track">
           <div class="score-bar-fill" id="score-bar" style="width:94%"></div>
         </div>
-        <p class="score-reason" id="score-reason">Soil temperature is 71°F — ideal range. Your last frost was 8 weeks ago. Zone 8b compatible. No invasive flags for Bexar County.</p>
+        <p class="score-reason" id="score-reason"></p>
       </div>
 
-      <p class="form-caption" id="found-caption" style="display:none">Community identification &mdash; verify before eating anything you find.</p>
+      <p class="form-caption" id="found-caption" style="display:none" data-i18n="plant_found_caption"></p>
 
       <!-- v0.14.0 sticky submit bar — the primary action never hides -->
       <div id="submit-bar">
-        <button class="submit-btn" id="submit-plant-btn" onclick="submitPlant()">Log this planting</button>
+        <button class="submit-btn" id="submit-plant-btn" onclick="submitPlant()" data-i18n="plant_submit"></button>
       </div>
     </div>
 
@@ -1972,14 +1972,14 @@ body.tab-map #map-view {
     <div id="profile-view" class="view">
 
       <div class="profile-hero">
-        <div class="profile-avatar-lg" id="profile-avatar" role="button" aria-label="Change avatar color" onclick="cycleAvatar()">P</div>
+        <div class="profile-avatar-lg" id="profile-avatar" role="button" data-i18n-attr="aria-label:profile_avatar_label" onclick="cycleAvatar()">P</div>
         <div style="flex:1;min-width:0">
-          <div class="profile-name" id="profile-name-display" role="button" onclick="startNameEdit()">Planter</div>
+          <div class="profile-name" id="profile-name-display" role="button" onclick="startNameEdit()" data-i18n="profile_default_name"></div>
           <div id="profile-name-edit">
-            <input class="form-input" id="profile-name-input" type="text" maxlength="40" placeholder="Name your garden" autocomplete="off">
+            <input class="form-input" id="profile-name-input" type="text" maxlength="40" data-i18n-attr="placeholder:profile_name_placeholder" autocomplete="off">
             <div class="name-edit-actions">
-              <button class="name-edit-btn save" onclick="saveNameEdit()">Save</button>
-              <button class="name-edit-btn" onclick="cancelNameEdit()">Cancel</button>
+              <button class="name-edit-btn save" onclick="saveNameEdit()" data-i18n="profile_name_save"></button>
+              <button class="name-edit-btn" onclick="cancelNameEdit()" data-i18n="profile_name_cancel"></button>
             </div>
           </div>
           <div class="profile-handle">Cibolo, TX &middot; Zone 8b</div>
@@ -1989,55 +1989,55 @@ body.tab-map #map-view {
       <div class="stat-grid" id="profile-stats"></div>
 
       <div style="margin-bottom:28px">
-        <div class="section-title">My plants</div>
+        <div class="section-title" data-i18n="profile_my_plants"></div>
         <div id="my-plants-list"></div>
       </div>
 
       <div style="margin-bottom:28px">
-        <div class="section-title">Settings</div>
+        <div class="section-title" data-i18n="profile_settings"></div>
         <div class="settings-row" id="sign-in-row" onclick="googleSignIn()" style="display:none">
-          <span class="settings-row-label">Sign in</span>
+          <span class="settings-row-label" data-i18n="settings_sign_in"></span>
           <span class="settings-row-value">Google <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
         <div class="settings-row" id="email-upgrade-row" onclick="startEmailUpgrade()">
-          <span class="settings-row-label" id="email-upgrade-label">Keep your garden</span>
+          <span class="settings-row-label" id="email-upgrade-label" data-i18n="settings_keep_garden"></span>
           <span class="settings-row-value" id="email-upgrade-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
         <div id="email-upgrade-edit">
           <button class="google-btn" onclick="googleSignIn()">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.2A8.5 8.5 0 1 1 18 6"/><path d="M21 12h-9"/></svg>
-            Continue with Google
+            <span data-i18n="settings_google_btn"></span>
           </button>
-          <div class="or-email-label">or use email</div>
-          <input class="form-input" id="email-upgrade-input" type="email" placeholder="you@example.com" autocomplete="off">
+          <div class="or-email-label" data-i18n="settings_or_email"></div>
+          <input class="form-input" id="email-upgrade-input" type="email" data-i18n-attr="placeholder:settings_email_placeholder" autocomplete="off">
           <div class="name-edit-actions">
-            <button class="name-edit-btn save" onclick="submitEmailUpgrade()">Send link</button>
-            <button class="name-edit-btn" onclick="cancelEmailUpgrade()">Cancel</button>
+            <button class="name-edit-btn save" onclick="submitEmailUpgrade()" data-i18n="settings_email_send"></button>
+            <button class="name-edit-btn" onclick="cancelEmailUpgrade()" data-i18n="settings_email_cancel"></button>
           </div>
         </div>
-        <div class="settings-row" onclick="showToast('API key settings coming soon')">
-          <span class="settings-row-label">AI key (Claude)</span>
-          <span class="settings-row-value">Not set <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        <div class="settings-row" onclick="showToast(t('settings_ai_coming_soon'))">
+          <span class="settings-row-label" data-i18n="settings_ai_key"></span>
+          <span class="settings-row-value"><span data-i18n="settings_not_set"></span> <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
-        <div class="settings-row" onclick="showToast('Radius settings coming soon')">
-          <span class="settings-row-label">Feed radius</span>
-          <span class="settings-row-value">50 miles <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        <div class="settings-row" onclick="showToast(t('settings_radius_coming_soon'))">
+          <span class="settings-row-label" data-i18n="settings_feed_radius"></span>
+          <span class="settings-row-value"><span data-i18n="settings_radius_value"></span> <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
-        <div class="settings-row" onclick="showToast('Reminders coming soon')">
-          <span class="settings-row-label">Planting reminders</span>
-          <span class="settings-row-value">Off <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        <div class="settings-row" onclick="showToast(t('settings_reminders_coming_soon'))">
+          <span class="settings-row-label" data-i18n="settings_planting_reminders"></span>
+          <span class="settings-row-value"><span data-i18n="settings_off"></span> <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
         <div class="settings-row" onclick="toggleBlockedList()">
-          <span class="settings-row-label">Blocked planters</span>
+          <span class="settings-row-label" data-i18n="settings_blocked"></span>
           <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
         <div id="blocked-list"></div>
         <div class="settings-row" id="sign-out-row" onclick="confirmSignOut()" style="display:none">
-          <span class="settings-row-label">Sign out</span>
+          <span class="settings-row-label" data-i18n="settings_sign_out"></span>
           <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
-        <div class="settings-row" onclick="showToast('Data cleared from this device')">
-          <span class="settings-row-label" style="color:var(--red-700)">Clear my data</span>
+        <div class="settings-row" onclick="showToast(t('settings_data_cleared'))">
+          <span class="settings-row-label" style="color:var(--red-700)" data-i18n="settings_clear_data"></span>
           <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
       </div>
@@ -2154,7 +2154,102 @@ const STR = {
     popup_haze_hunt: "Somewhere in this circle — happy hunting.",
     popup_haze_safety: "Locations are neighborhood-level for everyone's safety.",
     popup_haze_private: "Private yard — on the map, not on the menu.",
-    popup_inspire: "Inspire"
+    popup_inspire: "Inspire",
+    // Plant form
+    plant_title: "Log a planting",
+    plant_subtitle: "We'll check timing, zone, and soil conditions for you.",
+    plant_what_happened: "What happened?",
+    plant_i_planted: "I planted this",
+    plant_i_found: "I found this",
+    plant_name_label: "Plant name",
+    plant_name_placeholder: "e.g. Fig tree, Blackberry, Pecan...",
+    plant_location_label: "Location",
+    plant_location_placeholder: "Captured automatically when you log",
+    plant_location_toast: "Location is captured when you log — GPS, or map center as fallback",
+    plant_type_label: "Type",
+    plant_type_edible: "Edible",
+    plant_type_wildlife: "Wildlife",
+    plant_type_pollinators: "Pollinators",
+    plant_type_all: "All of the above",
+    plant_loc_none: "No location yet",
+    plant_loc_refresh: "Refresh",
+    plant_loc_map: "Place on map",
+    plant_loc_use_center: "Use map center",
+    plant_loc_hint: "Turn on precise location for Chrome, or place the pin on the map.",
+    plant_loc_found_hint: "Log where you found it — place on the map if you're logging later.",
+    plant_loc_precision: "Published at neighborhood precision (~100 m).",
+    plant_access_label: "Who can reach it?",
+    plant_access_open: "Open spot",
+    plant_access_ask: "Ask first",
+    plant_access_private: "My yard",
+    plant_access_caption: "Open spots mean parks, parkways, and community gardens — where planting is permitted.",
+    plant_note_label: "Note (optional)",
+    plant_note_placeholder: "Soil prep, method, observations...",
+    plant_photo_label: "Photo (optional)",
+    plant_photo_add: "Add a photo",
+    plant_photo_preview_alt: "Photo preview",
+    plant_photo_remove_label: "Remove photo",
+    plant_found_caption: "Community identification — verify before eating anything you find.",
+    plant_submit: "Log this planting",
+    // Score preview
+    score_title: "Plant score",
+    score_plant_now: "Plant now",
+    score_window_edge: "Window edge",
+    score_wrong_season: "Wrong season",
+    score_do_not_plant: "Do not plant",
+    score_reason_invasive: "Invasive in Texas — crowds out the natives that wildlife depends on. Plant {alt} instead.",
+    score_reason_in_window: "In your planting window ({region} · Zone {zone}). Best months: {months}.",
+    score_reason_native_suffix: " Texas native — evolved for this soil and heat.",
+    score_reason_edge: "You're at the edge of the window. Best months here: {months}.",
+    score_reason_off_season: "Off-season in {region}. Best months: {months}.",
+    score_reason_caution_prefix: " Caution: ",
+    score_reason_note_prefix: " ",
+    plant_not_in_db: "Not in our Texas database yet — logging still works. AI lookup for any plant arrives with the Claude key feature.",
+    plant_suggest_invasive: "Invasive — do not plant",
+    // Profile
+    profile_avatar_label: "Change avatar color",
+    profile_default_name: "Planter",
+    profile_name_placeholder: "Name your garden",
+    profile_name_save: "Save",
+    profile_name_cancel: "Cancel",
+    profile_my_plants: "My plants",
+    profile_settings: "Settings",
+    profile_stat_plants: "Plants logged",
+    profile_stat_inspired: "Inspired",
+    profile_stat_inspires_given: "Inspires given",
+    profile_my_plants_empty: "Your first planting will appear here",
+    // Settings
+    settings_sign_in: "Sign in",
+    settings_keep_garden: "Keep your garden",
+    settings_google_btn: "Continue with Google",
+    settings_or_email: "or use email",
+    settings_email_placeholder: "you@example.com",
+    settings_email_send: "Send link",
+    settings_email_cancel: "Cancel",
+    settings_ai_key: "AI key (Claude)",
+    settings_not_set: "Not set",
+    settings_feed_radius: "Feed radius",
+    settings_radius_value: "50 miles",
+    settings_planting_reminders: "Planting reminders",
+    settings_off: "Off",
+    settings_blocked: "Blocked planters",
+    settings_sign_out: "Sign out",
+    settings_clear_data: "Clear my data",
+    settings_ai_coming_soon: "API key settings coming soon",
+    settings_radius_coming_soon: "Radius settings coming soon",
+    settings_reminders_coming_soon: "Reminders coming soon",
+    settings_data_cleared: "Data cleared from this device",
+    // Sheets
+    sheet_setup_title_default: "You're on the map.",
+    sheet_setup_body_default: "What should neighbors call you?",
+    sheet_setup_welcome_title: "Welcome to the neighborhood.",
+    sheet_setup_welcome_body: "What should neighbors call you?",
+    sheet_setup_google: "Continue with Google",
+    sheet_setup_google_caption: "Your garden stays yours on any device. Without it, your plants live only in this browser.",
+    sheet_setup_save: "Save",
+    sheet_setup_skip: "Skip",
+    sheet_auth_error_title: "Could not sign in",
+    sheet_auth_error_dismiss: "Dismiss"
   }
 };
 
@@ -2338,8 +2433,8 @@ function plantScore(plant) {
   const now = new Date().getMonth() + 1; // 1-12
   const best = (plant.m || []).map(m => MONTH_ABBR[m-1]).join(", ");
   if (plant.inv) {
-    return { score: 8, status: "Do not plant", tier: "danger",
-      reason: "Invasive in Texas — crowds out the natives that wildlife depends on. Plant " + plant.alt + " instead." };
+    return { score: 8, status: t('score_do_not_plant'), tier: "danger",
+      reason: t('score_reason_invasive', { alt: plant.alt }) };
   }
   let s, status, tier, reason;
   const inWindow = (plant.m || []).includes(now);
@@ -2348,18 +2443,18 @@ function plantScore(plant) {
   const nearWindow = (plant.m || []).includes(next) || (plant.m || []).includes(prev);
   if (inWindow) {
     s = plant.native ? 94 : 88;
-    status = "Plant now"; tier = "good";
-    reason = "In your planting window (" + REGION.name + " · Zone " + REGION.zone + "). Best months: " + best + ".";
-    if (plant.native) reason += " Texas native — evolved for this soil and heat.";
+    status = t('score_plant_now'); tier = "good";
+    reason = t('score_reason_in_window', { region: REGION.name, zone: REGION.zone, months: best });
+    if (plant.native) reason += t('score_reason_native_suffix');
   } else if (nearWindow) {
-    s = 62; status = "Window edge"; tier = "warn";
-    reason = "You're at the edge of the window. Best months here: " + best + ".";
+    s = 62; status = t('score_window_edge'); tier = "warn";
+    reason = t('score_reason_edge', { months: best });
   } else {
-    s = 30; status = "Wrong season"; tier = "danger";
-    reason = "Off-season in " + REGION.name + ". Best months: " + best + ".";
+    s = 30; status = t('score_wrong_season'); tier = "danger";
+    reason = t('score_reason_off_season', { region: REGION.name, months: best });
   }
-  if (plant.warn) reason += " Caution: " + plant.warn + ".";
-  if (plant.note && tier === "good") reason += " " + plant.note + ".";
+  if (plant.warn) reason += t('score_reason_caution_prefix') + plant.warn + ".";
+  if (plant.note && tier === "good") reason += t('score_reason_note_prefix') + plant.note + ".";
   return { score: s, status: status, tier: tier, reason: reason };
 }
 
@@ -2754,9 +2849,9 @@ function onPlantInput(input) {
   ).slice(0, 6);
   if (hits.length) {
     sugBox.innerHTML = hits.map(p => {
-      const t = pinType(p.tags);
-      const cls = p.inv ? 'inv' : t;
-      const sub = p.inv ? 'Invasive — do not plant' : p.sci;
+      const typ = pinType(p.tags);
+      const cls = p.inv ? 'inv' : typ;
+      const sub = p.inv ? t('plant_suggest_invasive') : p.sci;
       return `<button class="suggest-item" onclick="pickPlant('${p.n.replace(/'/g, "\\'")}')">` +
         `<span class="suggest-dot ${cls}"></span>` +
         `<span class="suggest-text"><span class="suggest-name">${p.n}</span>` +
@@ -2764,7 +2859,7 @@ function onPlantInput(input) {
     }).join('');
     sugBox.classList.add('visible');
   } else {
-    sugBox.innerHTML = '<div class="suggest-none">Not in our Texas database yet — logging still works. AI lookup for any plant arrives with the Claude key feature.</div>';
+    sugBox.innerHTML = `<div class="suggest-none">${t('plant_not_in_db')}</div>`;
     sugBox.classList.add('visible');
   }
   const exact = dbFind(val);
@@ -3810,7 +3905,7 @@ async function getStartedFlow() {
     localStorage.setItem('ja_setup_seen', '1');
     if (localStorage.getItem('ja_setup_seen') !== '1') return; // write failed
   } catch (e) { return; }
-  openSetupSheet('Welcome to the neighborhood.', 'What should neighbors call you?');
+  openSetupSheet(t('sheet_setup_welcome_title'), t('sheet_setup_welcome_body'));
 }
 
 // ja_setup_seen is a sacred key — one-shot, set at show so the
@@ -3826,12 +3921,12 @@ function maybeShowSetupSheet() {
 
 function openSetupSheet(title, body, prefillName, hideGoogle) {
   // First-log defaults preserved; splash context passes its own copy (decision 3)
-  const t = title || "You're on the map.";
-  const b = body || 'What should neighbors call you?';
+  const sheetTitle = title || t('sheet_setup_title_default');
+  const sheetBody = body || t('sheet_setup_body_default');
   const sheet = document.getElementById('action-sheet');
   const current = (prefillName !== undefined && prefillName !== null)
     ? prefillName
-    : (myProfile ? myProfile.display_name : 'Planter');
+    : (myProfile ? myProfile.display_name : t('profile_default_name'));
   setupColor = myProfile ? myProfile.avatar_color : null;
   const colorRow = AVATAR_PALETTE.map(c =>
     `<button class="setup-color${setupColor === c ? ' selected' : ''}" data-color="${c}"
@@ -3843,16 +3938,16 @@ function openSetupSheet(title, body, prefillName, hideGoogle) {
     <div class="sheet-divider"></div>
     <button class="google-btn" onclick="googleSignIn()">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 12.2A8.5 8.5 0 1 1 18 6"/><path d="M21 12h-9"/></svg>
-      Continue with Google
+      ${t('sheet_setup_google')}
     </button>
-    <p class="google-caption">Your garden stays yours on any device. Without it, your plants live only in this browser.</p>`;
+    <p class="google-caption">${t('sheet_setup_google_caption')}</p>`;
   sheet.innerHTML = `
-    <div class="sheet-title"><strong>${t}</strong><br>${b}</div>
+    <div class="sheet-title"><strong>${sheetTitle}</strong><br>${sheetBody}</div>
     <input class="form-input" id="setup-name" type="text" maxlength="40" value="${esc(current)}" autocomplete="off">
     <div class="setup-colors">${colorRow}</div>` +
     googleBlock +
-    `<button class="sheet-btn" style="background:var(--green-700);border-color:var(--green-700);color:white" onclick="saveSetupSheet()">Save</button>
-    <button class="sheet-btn cancel" onclick="closeSheet()">Skip</button>`;
+    `<button class="sheet-btn" style="background:var(--green-700);border-color:var(--green-700);color:white" onclick="saveSetupSheet()">${t('sheet_setup_save')}</button>
+    <button class="sheet-btn cancel" onclick="closeSheet()">${t('sheet_setup_skip')}</button>`;
   document.getElementById('action-sheet-backdrop').classList.add('open');
   sheet.classList.add('open');
 }
@@ -4258,7 +4353,7 @@ function bumpLogCount() {
 }
 
 function showAuthError(msg, rawError) {
-  const title = 'Could not sign in';
+  const title = t('sheet_auth_error_title');
   let detail = msg;
   if (rawError) {
     const errMsg = rawError.message || rawError.error_description || rawError.error || '';
@@ -4267,7 +4362,7 @@ function showAuthError(msg, rawError) {
     detail = `${msg}\n\nRaw error: ${raw || JSON.stringify(rawError)}`;
   }
   openSheet(
-    [{ label: 'Dismiss', handler: closeSheet }],
+    [{ label: t('sheet_auth_error_dismiss'), handler: closeSheet }],
     title,
     detail
   );
