@@ -1791,15 +1791,15 @@ body.tab-map #map-view {
     </svg>
   </div>
   <h1 class="splash-title">Johnny <em>Appleseed</em></h1>
-  <p class="splash-tagline">Plant something. Feed someone.<br>Grow a community.</p>
-  <button class="splash-cta" onclick="getStartedFlow()">Get started</button>
-  <button class="splash-secondary" onclick="enterApp()">Browse without an account</button>
-  <p class="splash-privacy">No account required to browse.<br>No tracking. No ads. No data selling.</p>
+  <p class="splash-tagline" data-i18n="splash_tagline"></p>
+  <button class="splash-cta" onclick="getStartedFlow()" data-i18n="splash_get_started"></button>
+  <button class="splash-secondary" onclick="enterApp()" data-i18n="splash_browse"></button>
+  <p class="splash-privacy" data-i18n="splash_privacy"></p>
   </div><!-- /splash-content -->
   <div id="welcome-back" style="display:none">
-    <p class="wb-greeting">Welcome back, <span id="wb-name"></span></p>
-    <p class="wb-prompt">Ready to log another?</p>
-    <button class="wb-cta">Let's go</button>
+    <p class="wb-greeting" id="wb-greeting-text"></p>
+    <p class="wb-prompt" data-i18n="splash_ready"></p>
+    <button class="wb-cta" data-i18n="splash_lets_go"></button>
   </div>
 </div>
 
@@ -1827,15 +1827,15 @@ body.tab-map #map-view {
     <div id="map-view" class="view active">
       <div id="map-filter">
         <button class="filter-pill active" onclick="setFilter(this,'all')">All plants</button>
-        <button class="filter-pill" onclick="setFilter(this,'edible')">Edible</button>
-        <button class="filter-pill" onclick="setFilter(this,'wildlife')">Wildlife</button>
-        <button class="filter-pill" onclick="setFilter(this,'pollinator')">Pollinators</button>
-        <button class="filter-pill" onclick="setFilter(this,'near')">Near me</button>
-        <button class="filter-pill" onclick="setFilter(this,'open')">Open harvest</button>
+        <button class="filter-pill" onclick="setFilter(this,'edible')" data-i18n="map_filter_edible"></button>
+        <button class="filter-pill" onclick="setFilter(this,'wildlife')" data-i18n="map_filter_wildlife"></button>
+        <button class="filter-pill" onclick="setFilter(this,'pollinator')" data-i18n="map_filter_pollinators"></button>
+        <button class="filter-pill" onclick="setFilter(this,'near')" data-i18n="map_filter_near"></button>
+        <button class="filter-pill" onclick="setFilter(this,'open')" data-i18n="map_filter_open"></button>
       </div>
       <div id="leaflet-map"></div>
       <div id="map-fallback">
-        <p>Map couldn't load.<br>Check your connection and refresh.</p>
+        <p data-i18n="map_fallback"></p>
       </div>
       <button id="plant-fab" aria-label="Plant something here" onclick="switchTab('plant')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
@@ -1857,30 +1857,30 @@ body.tab-map #map-view {
 
       <div id="location-bar">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span id="location-text">Showing plants near <strong>Cibolo, TX</strong></span>
+        <span id="location-text"><span data-i18n="location_showing"></span> <strong data-i18n="location_cibolo"></strong></span>
       </div>
 
       <div id="feed-pills">
-        <button class="filter-pill active" onclick="setFeedMode('nearby', this)">Nearby</button>
-        <button class="filter-pill" onclick="setFeedMode('following', this)">Following</button>
+        <button class="filter-pill active" onclick="setFeedMode('nearby', this)" data-i18n="feed_nearby"></button>
+        <button class="filter-pill" onclick="setFeedMode('following', this)" data-i18n="feed_following"></button>
       </div>
 
       <div class="ai-banner">
         <svg class="ai-banner-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 6v6l4 2"/><path d="M18 2v4h4"/></svg>
         <div class="ai-banner-text">
-          <strong>Plant intelligence active</strong>
-          Each plant below is scored for your location, season, and soil conditions.
+          <strong data-i18n="feed_ai_banner_title"></strong>
+          <span data-i18n="feed_ai_banner_body"></span>
         </div>
       </div>
 
-      <div class="feed-section-label">Recent plantings nearby<button id="feed-refresh-btn" onclick="refreshFeed()" aria-label="Refresh feed" style="background:none;border:none;color:var(--green-400);font-size:18px;margin-left:8px;cursor:pointer;padding:0;vertical-align:middle">⟳</button></div>
+      <div class="feed-section-label" data-i18n="feed_section_recent"><button id="feed-refresh-btn" onclick="refreshFeed()" aria-label="Refresh feed" style="background:none;border:none;color:var(--green-400);font-size:18px;margin-left:8px;cursor:pointer;padding:0;vertical-align:middle">⟳</button></div>
 
       <div id="feed-live"></div>
 
       <div class="feed-empty" id="feed-empty">
-        <p class="feed-empty-title">No plantings nearby yet</p>
-        <p class="feed-empty-sub">Be the first in your area to log a planting.<br>Every pin on the map is a gift to a neighbor.</p>
-        <button class="feed-empty-btn" onclick="switchTab('plant')">Log a planting</button>
+        <p class="feed-empty-title" data-i18n="feed_empty_title"></p>
+        <p class="feed-empty-sub" data-i18n="feed_empty_sub"></p>
+        <button class="feed-empty-btn" onclick="switchTab('plant')" data-i18n="feed_empty_btn"></button>
       </div>
 
     </div>
@@ -2071,7 +2071,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.35.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.36.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2079,21 +2079,21 @@ body.tab-map #map-view {
 
   <!-- TAB BAR -->
   <nav id="tab-bar" role="navigation" aria-label="Main navigation">
-    <button class="tab-btn active" onclick="switchTab('map')" aria-label="Map">
+    <button class="tab-btn active" onclick="switchTab('map')" data-i18n-attr="aria-label:tab_map">
       <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-      <span class="tab-label">Map</span>
+      <span class="tab-label" data-i18n="tab_map"></span>
     </button>
-    <button class="tab-btn" onclick="switchTab('feed')" aria-label="Feed">
+    <button class="tab-btn" onclick="switchTab('feed')" data-i18n-attr="aria-label:tab_feed">
       <svg viewBox="0 0 24 24" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-      <span class="tab-label">Feed</span>
+      <span class="tab-label" data-i18n="tab_feed"></span>
     </button>
-    <button class="tab-btn" onclick="switchTab('plant')" aria-label="Plant">
+    <button class="tab-btn" onclick="switchTab('plant')" data-i18n-attr="aria-label:tab_plant">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
-      <span class="tab-label">Plant</span>
+      <span class="tab-label" data-i18n="tab_plant"></span>
     </button>
-    <button class="tab-btn" onclick="switchTab('profile')" aria-label="Profile">
+    <button class="tab-btn" onclick="switchTab('profile')" data-i18n-attr="aria-label:tab_profile">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span class="tab-label">Profile</span>
+      <span class="tab-label" data-i18n="tab_profile"></span>
     </button>
   </nav>
 
@@ -2125,6 +2125,102 @@ let toastTimer = null;
 /* ── SUPABASE ──
    Anon key is PUBLIC by design (static PWA) — RLS is the entire
    security layer. Never add any other key here. */
+
+/* ── I18N (v0.36.0): foundation for Spanish build ── */
+const LANG = 'en'; // Phase 1: English only; ja_lang reserved for Phase 2
+const STR = {
+  en: {
+    // Splash
+    splash_tagline: "Plant something. Feed someone. Grow a community.",
+    splash_get_started: "Get started",
+    splash_browse: "Browse the map",
+    splash_welcome_back: "Welcome back, {name}",
+    splash_ready: "Ready to log another?",
+    splash_lets_go: "Let's go",
+    splash_privacy: "No account required to browse.\nNo tracking. No ads. No data selling.",
+    // Topbar
+    topbar_title: "Johnny Appleseed",
+    // Tabs
+    tab_map: "Map",
+    tab_feed: "Feed",
+    tab_plant: "Plant",
+    tab_profile: "Profile",
+    // Location bar
+    location_showing: "Showing plants near",
+    location_cibolo: "Cibolo, TX",
+    // Feed
+    feed_nearby: "Nearby",
+    feed_following: "Following",
+    feed_ai_banner_title: "Plant intelligence active",
+    feed_ai_banner_body: "Each plant below is scored for your location, season, and soil conditions.",
+    feed_section_recent: "Recent plantings nearby",
+    feed_empty_title: "No plantings nearby yet",
+    feed_empty_sub: "Be the first in your area to log a planting.\nEvery pin on the map is a gift to a neighbor.",
+    feed_empty_btn: "Log a planting",
+    feed_empty_following_title: "No gardens yet",
+    feed_empty_following_sub: "Follow a planter and their gardens show up here.",
+    feed_chip_edible: "Edible",
+    feed_chip_wildlife: "Wildlife",
+    feed_chip_pollinator: "Pollinator",
+    feed_chip_open: "Open harvest",
+    feed_chip_found: "Found",
+    feed_caution: "Community ID — verify before harvesting.",
+    feed_follow: "Follow",
+    feed_following_empty_title: "No gardens yet",
+    feed_following_empty_sub: "Follow a planter and their gardens show up here.",
+    feed_inspired: "Inspired",
+    feed_this_inspires_me: "This inspires me",
+    feed_plant_score: "Plant score",
+    // Map filters
+    map_filter_edible: "Edible",
+    map_filter_wildlife: "Wildlife",
+    map_filter_pollinators: "Pollinators",
+    map_filter_near: "Near me",
+    map_filter_open: "Open harvest",
+    map_fallback: "Map couldn't load.\nCheck your connection and refresh.",
+    // Map popups
+    popup_found_by: "Found by",
+    popup_by: "by",
+    popup_open_harvest: "Open harvest",
+    popup_score: "Score",
+    popup_haze_hunt: "Somewhere in this circle — happy hunting.",
+    popup_haze_safety: "Locations are neighborhood-level for everyone's safety.",
+    popup_haze_private: "Private yard — on the map, not on the menu.",
+    popup_inspire: "Inspire"
+  }
+};
+
+function t(key, vars) {
+  let str = STR[LANG]?.[key];
+  if (!str) {
+    console.warn(`Missing i18n key: ${key}`);
+    return key; // Fallback: return key itself, never undefined
+  }
+  if (vars) {
+    // Template interpolation: {name} -> vars.name
+    Object.keys(vars).forEach(k => {
+      str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), vars[k]);
+    });
+  }
+  return str;
+}
+
+function applyStrings() {
+  // Static markup: data-i18n="key" -> textContent
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  // Attributes: data-i18n-attr="placeholder:key,aria-label:key2"
+  document.querySelectorAll('[data-i18n-attr]').forEach(el => {
+    const pairs = el.getAttribute('data-i18n-attr').split(',');
+    pairs.forEach(pair => {
+      const [attr, key] = pair.split(':');
+      if (attr && key) el.setAttribute(attr.trim(), t(key.trim()));
+    });
+  });
+}
+
 const SUPABASE_URL = 'https://uavtaznzdpmfvkdpqyrv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdnRhem56ZHBtZnZrZHBxeXJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwMzg3MzMsImV4cCI6MjA5ODYxNDczM30.TVyf7xuAAPk2GPtRJwU_sAhU0OBxoUHlODftVHe8ElA';
 // Guarded init: if the CDN failed, sb is null and every feature
@@ -2432,26 +2528,26 @@ function dbPinPopupHtml(row) {
     (row.sci ? `<span class="pin-sci">${esc(row.sci)}</span>` : '') +
     // Photo only — no placeholder in popups (space-constrained; omit instead)
     (row.photo_url ? `<img class="pin-photo" src="${esc(row.photo_url)}" alt="${esc(row.plant_name)}" loading="lazy">` : '') +
-    `<span class="pin-meta">${isFind ? 'Found by' : 'by'} ${author}${caution}</span>` +
+    `<span class="pin-meta">${isFind ? t('popup_found_by') : t('popup_by')} ${author}${caution}</span>` +
     (row.note ? `<span class="pin-note">${esc(row.note)}</span>` : '') +
     `<div class="pin-badges">` +
-      (row.access === 'public' ? `<span class="pin-chip">Open harvest</span>` : '') +
-      (row.score != null ? `<span class="pin-score">Score ${row.score}</span>` : '') +
+      (row.access === 'public' ? `<span class="pin-chip">${t('popup_open_harvest')}</span>` : '') +
+      (row.score != null ? `<span class="pin-score">${t('popup_score')} ${row.score}</span>` : '') +
     `</div>` +
     // v0.17.0 haze copy — treasure hunt ONLY on public (decision 3); the
     // neighborhood-level line is a feature statement, not an apology (decision 4)
     (row.access === 'public'
-      ? `<span class="pin-haze">Somewhere in this circle &mdash; happy hunting.</span>` +
-        `<span class="pin-haze">Locations are neighborhood-level for everyone's safety.</span>`
+      ? `<span class="pin-haze">${t('popup_haze_hunt')}</span>` +
+        `<span class="pin-haze">${t('popup_haze_safety')}</span>`
       : (row.access || 'private') === 'private'
-        ? `<span class="pin-haze">Private yard &mdash; on the map, not on the menu.</span>`
+        ? `<span class="pin-haze">${t('popup_haze_private')}</span>`
         : '') +
     `<div class="pin-inspire-row">
       <button class="inspire-btn pin-inspire"
         data-plant="${esc(row.id)}" data-inspired="false" data-count="0"
         onclick="togglePinInspire(this)">
         <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${seed}</svg>
-        Inspire
+        ${t('popup_inspire')}
       </button>
       <span class="pin-insp-count" id="pin-insp-count-${esc(row.id)}">&ndash;</span>
     </div>`;
@@ -3108,10 +3204,11 @@ async function loadFeed() {
     if (feedMode === 'following') {
       emptyEl.classList.remove('visible');
       if (!followedIds.size) {
-        box.innerHTML = `<div class="feed-empty visible">
-          <p class="feed-empty-title">No gardens yet</p>
-          <p class="feed-empty-sub">Follow a planter and their gardens show up here.</p>
+        const emptyHtml = `<div class="feed-empty visible">
+          <p class="feed-empty-title">${t('feed_following_empty_title')}</p>
+          <p class="feed-empty-sub">${t('feed_following_empty_sub')}</p>
         </div>`;
+        box.innerHTML = emptyHtml;
         return;
       }
       query = query.in('user_id', [...followedIds]);
@@ -3173,7 +3270,7 @@ async function loadFeed() {
         `<button class="follow-btn${followedIds.has(row.user_id) ? ' following' : ''}"
           data-author="${esc(row.user_id)}"
           data-following="${followedIds.has(row.user_id)}"
-          onclick="toggleFollowDb(this)">${followedIds.has(row.user_id) ? 'Following' : 'Follow'}</button>`;
+          onclick="toggleFollowDb(this)">${followedIds.has(row.user_id) ? t('feed_following') : t('feed_follow')}</button>`;
       return `<div class="post-card">
         <div class="post-header">
           <div class="avatar" style="background:${color};color:#fff">${initials}</div>
@@ -3196,17 +3293,17 @@ async function loadFeed() {
             <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21"/><path d="M9.5 9.5L8 5.5l2-3 2 3z"/></svg>
             ${esc(row.plant_name)}
           </div>` +
-          (row.kind === 'discovered' ? '<div class="found-chip">Found</div>' : '') +
+          (row.kind === 'discovered' ? `<div class="found-chip">${t('feed_chip_found')}</div>` : '') +
         `</div>` +
         (row.kind === 'discovered' && (row.tags || []).includes('edible')
-          ? '<p class="found-caution">Community ID &mdash; verify before harvesting.</p>' : '') +
+          ? `<p class="found-caution">${t('feed_caution')}</p>` : '') +
         `
         <div class="post-footer">
           <button class="inspire-btn${mine ? ' inspired' : ''}"
             data-plant="${esc(row.id)}" data-inspired="${mine}" data-count="${count}"
             onclick="toggleInspireDb(this)">
             <svg viewBox="0 0 24 24"><path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/></svg>
-            ${mine ? 'Inspired' : 'This inspires me'}${count > 0 ? ' &middot; ' + count : ''}
+            ${mine ? t('feed_inspired') : t('feed_this_inspires_me')}${count > 0 ? ' &middot; ' + count : ''}
           </button>
           <button class="comment-btn" aria-label="Comments"
             data-plant="${esc(row.id)}" data-owner="${esc(row.user_id)}" data-count="${nComments}"
@@ -3214,7 +3311,7 @@ async function loadFeed() {
             <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             ${nComments > 0 ? nComments : ''}
           </button>` +
-          (row.score != null ? `<span class="score-badge">Plant score <span>${row.score}</span></span>` : '') +
+          (row.score != null ? `<span class="score-badge">${t('feed_plant_score')} <span>${row.score}</span></span>` : '') +
         `</div>
         <div class="comment-thread" id="thread-${esc(row.id)}" data-plant="${esc(row.id)}" data-owner="${esc(row.user_id)}"></div>
       </div>`;
@@ -3231,7 +3328,7 @@ function setInspireBtn(btn, inspired, count) {
   btn.dataset.count = String(count);
   btn.classList.toggle('inspired', inspired);
   const iconPath = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
-  btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${iconPath}</svg>${inspired ? ' Inspired' : ' This inspires me'}${count > 0 ? ' &middot; ' + count : ''}`;
+  btn.innerHTML = `<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.8;flex-shrink:0" aria-hidden="true">${iconPath}</svg>${inspired ? ' ' + t('feed_inspired') : ' ' + t('feed_this_inspires_me')}${count > 0 ? ' &middot; ' + count : ''}`;
 }
 
 async function toggleInspireDb(btn) {
@@ -4218,6 +4315,7 @@ function showToast(msg) {
 
 // Init: set map mode on load since map is the default tab
 document.addEventListener('DOMContentLoaded', () => {
+  applyStrings(); // v0.36.0: i18n static markup
   document.getElementById('topbar').classList.add('map-mode');
   document.body.classList.add('tab-map');
   initMap();
@@ -4249,7 +4347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const welcomePanel = document.getElementById('welcome-back');
     const displayName = localStorage.getItem('ja_display_name') || 'Gardener';
-    document.getElementById('wb-name').textContent = displayName;
+    document.getElementById('wb-greeting-text').textContent = t('splash_welcome_back', { name: displayName });
     welcomePanel.style.display = 'block';
     setTimeout(() => welcomePanel.classList.add('show'), 800);
 

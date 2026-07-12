@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.35.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.36.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -756,6 +756,18 @@ as MyMeds' FDA `product_description` query rule.
 
 `REGION` constant = Cibolo TX, zone 8b/9a. Session 3 replaces static months
 with live frost/soil-temp data; the tier structure stays.
+
+## I18N architecture (v0.36.0) — foundation for Spanish build
+
+- **const LANG = 'en'** (line ~2130) — hardcoded Phase 1, will become dynamic in Phase 2
+- **const STR** — single dictionary `{ en: { key: "text", ... } }`. Lookup via `t(key, vars)`.
+- **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR.en[key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
+- **applyStrings()** — walker for static markup: `data-i18n="key"` sets textContent, `data-i18n-attr="attr:key"` sets attributes. Runs once on DOMContentLoaded.
+- **Dynamic sentences use templates**, never concatenation: `t('splash_welcome_back', { name: displayName })` → "Welcome back, {name}". Word order must be free to differ per language.
+- **Not extracted** (stays literal): "Johnny Appleseed" brand, "AIRIHA LLC", scientific names, PLANT_DB data content, version footer, console/log strings.
+- **ja_lang reserved** (Phase 2) — user's language preference, will live in localStorage. Not used yet; note it in sacred keys when created.
+- **Tripwire 17 exception consumed** — map popup copy ("Somewhere in this circle — happy hunting.", "Private yard — on the map, not on the menu.", "Found by") IS extracted via t() with byte-identical English output. Map re-frozen after v0.36.0.
+- **Roadmap**: v0.36.0 = infrastructure + splash/feed/topbar/tabs/popups (SHIPPED). v0.36.1 = plant form, score preview, profile, sheets. v0.36.2 = toasts, notifications, final audit. Phase 2 = Spanish dictionary + ja_lang localStorage + language picker.
 
 ## Version fan-out — ALL must change together (currently 2)
 
