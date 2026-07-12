@@ -1789,7 +1789,7 @@ body.tab-map #map-view {
   <div id="topbar">
     <span id="topbar-wordmark">Johnny <span>Appleseed</span></span>
     <div id="topbar-actions">
-      <button class="icon-btn" aria-label="Search" onclick="showToast('Search coming soon')">
+      <button class="icon-btn" aria-label="Search" onclick="showToast(t('toast_search_coming_soon'))">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
       <button class="icon-btn" id="notif-bell" aria-label="Notifications" onclick="openNotifPanel()">
@@ -2042,7 +2042,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.36.1 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.36.2 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2249,7 +2249,47 @@ const STR = {
     sheet_setup_save: "Save",
     sheet_setup_skip: "Skip",
     sheet_auth_error_title: "Could not sign in",
-    sheet_auth_error_dismiss: "Dismiss"
+    sheet_auth_error_dismiss: "Dismiss",
+    // Toasts
+    toast_search_coming_soon: "Search coming soon",
+    toast_sharing_offline: "Sharing is offline right now — try again later",
+    toast_could_not_save: "Could not save",
+    toast_could_not_load_plantings: "Couldn't load community plantings",
+    toast_filter: "Filter: {filter}",
+    toast_no_gps: "Couldn't get a GPS fix",
+    toast_choose_image: "Choose an image file",
+    toast_enter_plant_name: "Enter a plant name first",
+    toast_set_location: "Set a location first — use Refresh or Place on map in the Location row",
+    toast_choose_access: "Choose who can reach it — pick an access level first",
+    toast_photo_upload_failed: "Photo upload failed",
+    toast_plant_logged: "{plant} logged. Thank you for planting.",
+    toast_could_not_log: "Could not log planting — try again",
+    toast_feed_refreshed: "Feed refreshed",
+    toast_could_not_post_comment: "Could not post comment",
+    toast_write_comment_first: "Write a comment first",
+    toast_comment_deleted: "Comment deleted",
+    toast_could_not_delete_comment: "Could not delete comment",
+    toast_could_not_load_comments: "Couldn't load comments",
+    toast_planting_deleted: "Planting deleted",
+    toast_could_not_delete: "Could not delete",
+    toast_reported: "Reported. Thank you for keeping the garden safe.",
+    toast_could_not_report: "Could not send report",
+    toast_planter_blocked: "Planter blocked",
+    toast_could_not_block: "Could not block",
+    toast_planter_unblocked: "Planter unblocked",
+    toast_could_not_unblock: "Could not unblock",
+    toast_could_not_setup: "Could not set up just now — you can browse anyway",
+    toast_garden_protected: "Garden protected — Google",
+    toast_log_first_plant: "Log your first plant to start your garden",
+    toast_name_cannot_be_empty: "Name cannot be empty",
+    toast_could_not_save_name: "Could not save name",
+    toast_could_not_save_color: "Could not save color",
+    toast_signed_out: "Signed out",
+    toast_could_not_sign_out: "Could not sign out",
+    toast_enter_email: "Enter an email address",
+    toast_check_inbox: "Check your inbox to confirm.",
+    toast_could_not_send_link: "Could not send the link",
+    toast_add_email_reminder: "Add an email in Profile to keep your garden"
   }
 };
 
@@ -2645,7 +2685,7 @@ async function onPinPopupOpen(e) {
 }
 
 async function togglePinInspire(btn) {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   const plantId = btn.dataset.plant;
   const was = btn.dataset.inspired === 'true';
   const wasCount = parseInt(btn.dataset.count || '0', 10) || 0;
@@ -2666,7 +2706,7 @@ async function togglePinInspire(btn) {
     }
   } catch (e) {
     setPinInspire(btn, was, wasCount); // revert
-    showToast(e.message || 'Could not save');
+    showToast(e.message || t('toast_could_not_save'));
   }
 }
 
@@ -2690,7 +2730,7 @@ async function loadDbPins() {
     }
     renderMarkers(currentFilter);
   } catch (e) {
-    showToast("Couldn't load community plantings");
+    showToast(t('toast_could_not_load_plantings'));
   }
 }
 
@@ -2736,7 +2776,7 @@ function setFilter(el, filter) {
   document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   if (map) renderMarkers(filter);
-  showToast('Filter: ' + el.textContent.trim());
+  showToast(t('toast_filter', { filter: el.textContent.trim() }));
 }
 
 // Fix #4: use data attribute as source of truth, not class read-after-write
@@ -2979,7 +3019,7 @@ function refreshLocation() {
     },
     () => {
       locFetching = false;
-      if (logLoc) { showToast("Couldn't get a GPS fix"); renderLocRow('set'); }
+      if (logLoc) { showToast(t('toast_no_gps')); renderLocRow('set'); }
       else renderLocRow('failed');
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -3026,7 +3066,7 @@ let photoPreviewUrl = null;
 function onPhotoPick(input) {
   const f = input.files && input.files[0];
   if (!f) return;
-  if (!f.type.startsWith('image/')) { showToast('Choose an image file'); input.value = ''; return; }
+  if (!f.type.startsWith('image/')) { showToast(t('toast_choose_image')); input.value = ''; return; }
   selectedPhotoFile = f;
   if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
   photoPreviewUrl = URL.createObjectURL(f);
@@ -3090,19 +3130,19 @@ function resolvePhotoContinue(goOn) {
 
 async function submitPlant() {
   const name = document.getElementById('plant-name').value.trim();
-  if (!name) { showToast('Enter a plant name first'); return; }
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!name) { showToast(t('toast_enter_plant_name')); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   try {
     // v0.16.0: ONLY the location-row state — the one permitted block
     // (publishing a pin with no location is meaningless; silence was the old bug)
     if (!logLoc) {
-      showToast('Set a location first — use Refresh or Place on map in the Location row');
+      showToast(t('toast_set_location'));
       return;
     }
     // v0.17.0: access is a required explicit choice (decision 5) — the
     // second of the only two legitimate blocks in this form
     if (!selectedAccess) {
-      showToast('Choose who can reach it — pick an access level first');
+      showToast(t('toast_choose_access'));
       return;
     }
     await ensureAuth();
@@ -3128,7 +3168,7 @@ async function submitPlant() {
         if (upErr) throw upErr;
         photoUrl = sb.storage.from('plant-photos').getPublicUrl(photoPath).data.publicUrl;
       } catch (upErr) {
-        showToast(upErr.message || 'Photo upload failed');
+        showToast(upErr.message || t('toast_photo_upload_failed'));
         photoUrl = null;
         photoPath = null;
         const goOn = await confirmLogWithoutPhoto();
@@ -3160,7 +3200,7 @@ async function submitPlant() {
       showToast(error.message);
       return;
     }
-    showToast(name + ' logged. Thank you for planting.');
+    showToast(t('toast_plant_logged', { plant: name }));
     document.getElementById('plant-name').value = '';
     document.getElementById('plant-note').value = '';
     removePhoto();
@@ -3174,7 +3214,7 @@ async function submitPlant() {
     maybeShowSetupSheet(); // one-shot, first log only (decision 5)
     setTimeout(() => switchTab('feed'), 1200);
   } catch (e) {
-    showToast(e.message || 'Could not log planting — try again');
+    showToast(e.message || t('toast_could_not_log'));
   }
 }
 
@@ -3212,7 +3252,7 @@ function setFeedMode(mode, el) {
 
 async function refreshFeed() {
   await Promise.all([loadFeed(), loadDbPins()]);
-  showToast('Feed refreshed');
+  showToast(t('toast_feed_refreshed'));
 }
 
 let pullStart = null;
@@ -3395,7 +3435,7 @@ function setInspireBtn(btn, inspired, count) {
 }
 
 async function toggleInspireDb(btn) {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   const plantId = btn.dataset.plant;
   const was = btn.dataset.inspired === 'true';
   const wasCount = parseInt(btn.dataset.count || '0', 10) || 0;
@@ -3417,7 +3457,7 @@ async function toggleInspireDb(btn) {
     }
   } catch (e) {
     setInspireBtn(btn, was, wasCount); // revert
-    showToast(e.message || 'Could not save');
+    showToast(e.message || t('toast_could_not_save'));
   }
 }
 
@@ -3431,7 +3471,7 @@ function setFollowBtns(author, following) {
 }
 
 async function toggleFollowDb(btn) {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   const author = btn.dataset.author;
   const was = btn.dataset.following === 'true';
   setFollowBtns(author, !was); // optimistic, all cards by this author
@@ -3454,7 +3494,7 @@ async function toggleFollowDb(btn) {
     }
   } catch (e) {
     setFollowBtns(author, was); // revert
-    showToast(e.message || 'Could not save');
+    showToast(e.message || t('toast_could_not_save'));
   }
 }
 
@@ -3521,17 +3561,17 @@ async function loadComments(plantId) {
     thread.dataset.loaded = '1';
     setCommentCount(plantId, comments.length);
   } catch (e) {
-    showToast("Couldn't load comments");
+    showToast(t('toast_could_not_load_comments'));
     thread.classList.remove('open');
   }
 }
 
 async function sendComment(btn, plantId) {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   const thread = document.getElementById('thread-' + plantId);
   const input = thread.querySelector('.comment-input');
   const body = input.value.trim();
-  if (!body) { showToast('Write a comment first'); return; }
+  if (!body) { showToast(t('toast_write_comment_first')); return; }
   const rowsBox = thread.querySelector('.comment-rows');
   const emptyEl = rowsBox.querySelector('.comment-empty');
   let tempEl = null;
@@ -3557,7 +3597,7 @@ async function sendComment(btn, plantId) {
   } catch (e) {
     if (tempEl) tempEl.remove(); // revert optimistic append
     input.value = body;
-    showToast(e.message || 'Could not post comment'); // DB cap message surfaces as-is
+    showToast(e.message || t('toast_could_not_post_comment')); // DB cap message surfaces as-is
   }
 }
 
@@ -3577,9 +3617,9 @@ async function deleteComment(commentId, plantId) {
         if (rowsBox) rowsBox.innerHTML = '<p class="comment-empty">Be the first to say something kind.</p>';
       }
     }
-    showToast('Comment deleted');
+    showToast(t('toast_comment_deleted'));
   } catch (e) {
-    showToast(e.message || 'Could not delete comment');
+    showToast(e.message || t('toast_could_not_delete_comment'));
   }
 }
 
@@ -3655,11 +3695,11 @@ async function doDeletePlant(plantId) {
           .then(({ error: rmErr }) => { if (rmErr) console.log('photo remove failed:', rmErr.message); });
       }
     }
-    showToast('Planting deleted');
+    showToast(t('toast_planting_deleted'));
     loadDbPins();
     loadFeed();
   } catch (e) {
-    showToast(e.message || 'Could not delete');
+    showToast(e.message || t('toast_could_not_delete'));
   }
 }
 
@@ -3696,7 +3736,7 @@ function openReportSheet(targetType, targetId) {
 }
 
 async function submitReport(targetType, targetId) {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   const reason = (document.getElementById('report-reason').value || '').trim() || null;
   closeSheet();
   try {
@@ -3705,9 +3745,9 @@ async function submitReport(targetType, targetId) {
     const { error } = await sb.from('reports')
       .insert({ target_type: targetType, target_id: targetId, reason: reason });
     if (error) throw error;
-    showToast('Reported. Thank you for keeping the garden safe.');
+    showToast(t('toast_reported'));
   } catch (e) {
-    showToast(e.message || 'Could not send report');
+    showToast(e.message || t('toast_could_not_report'));
   }
 }
 
@@ -3720,7 +3760,7 @@ function confirmBlock(author) {
 }
 
 async function doBlock(author) {
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   try {
     const session = await ensureAuth();
     const me = session.user.id;
@@ -3731,12 +3771,12 @@ async function doBlock(author) {
       .insert({ blocker_id: me, blocked_id: author });
     if (error) throw error;
     blockedIds.add(author);
-    showToast('Planter blocked');
+    showToast(t('toast_planter_blocked'));
     loadFeed();                              // re-filter feed (threads rebuild)
     if (map) renderMarkers(currentFilter);   // re-filter map pins
     renderBlockedList();                     // refresh settings list if open
   } catch (e) {
-    showToast(e.message || 'Could not block');
+    showToast(e.message || t('toast_could_not_block'));
   }
 }
 
@@ -3773,12 +3813,12 @@ async function unblockPlanter(id) {
       .delete().eq('blocker_id', myUserId).eq('blocked_id', id);
     if (error) throw error;
     blockedIds.delete(id);
-    showToast('Planter unblocked');
+    showToast(t('toast_planter_unblocked'));
     renderBlockedList();
     loadFeed();
     if (map) renderMarkers(currentFilter);
   } catch (e) {
-    showToast(e.message || 'Could not unblock');
+    showToast(e.message || t('toast_could_not_unblock'));
   }
 }
 
@@ -3892,12 +3932,12 @@ async function getStartedFlow() {
   try { prompted = localStorage.getItem('ja_setup_seen') === '1'; } catch (e) {}
   enterApp();
   if (prompted) return;
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
   try {
     await ensureAuth();
   } catch (e) {
     // Entry is never blocked (decision 5); flag NOT set — sheet never shown
-    showToast(e.message || 'Could not set up just now — you can browse anyway');
+    showToast(e.message || t('toast_could_not_setup'));
     return;
   }
   if (!myProfile) await loadOwnProfile(); // Save needs the profile row
@@ -4051,7 +4091,7 @@ async function handleOauthReturn() {
     }
     // Success: clear auto-retry guard
     try { sessionStorage.removeItem('ja_oauth_autoretry'); } catch (e) {}
-    showToast('Garden protected — Google');
+    showToast(t('toast_garden_protected'));
     await loadOwnProfile(); // this re-renders hero, plants, stats
     renderProfileHero(); // explicit re-render
     renderMyPlants();
@@ -4091,7 +4131,7 @@ async function saveSetupSheet() {
   } catch (e) {
     Object.assign(myProfile, prev); // roll back
     renderProfileHero();
-    showToast(e.message || 'Could not save');
+    showToast(e.message || t('toast_could_not_save'));
   }
 }
 
@@ -4141,7 +4181,7 @@ async function loadOwnProfile() {
 }
 
 function startNameEdit() {
-  if (!myProfile) { showToast('Log your first plant to start your garden'); return; }
+  if (!myProfile) { showToast(t('toast_log_first_plant')); return; }
   const input = document.getElementById('profile-name-input');
   input.value = myProfile.display_name;
   document.getElementById('profile-name-edit').classList.add('visible');
@@ -4156,7 +4196,7 @@ function cancelNameEdit() {
 
 async function saveNameEdit() {
   const val = document.getElementById('profile-name-input').value.trim();
-  if (!val) { showToast('Name cannot be empty'); return; }
+  if (!val) { showToast(t('toast_name_cannot_be_empty')); return; }
   const prev = myProfile.display_name;
   myProfile.display_name = val; // optimistic
   renderProfileHero();
@@ -4168,12 +4208,12 @@ async function saveNameEdit() {
   } catch (e) {
     myProfile.display_name = prev; // roll back
     renderProfileHero();
-    showToast(e.message || 'Could not save name');
+    showToast(e.message || t('toast_could_not_save_name'));
   }
 }
 
 async function cycleAvatar() {
-  if (!myProfile) { showToast('Log your first plant to start your garden'); return; }
+  if (!myProfile) { showToast(t('toast_log_first_plant')); return; }
   const i = AVATAR_PALETTE.indexOf(myProfile.avatar_color);
   const next = AVATAR_PALETTE[(i + 1) % AVATAR_PALETTE.length];
   const prev = myProfile.avatar_color;
@@ -4186,7 +4226,7 @@ async function cycleAvatar() {
   } catch (e) {
     myProfile.avatar_color = prev; // roll back
     renderProfileHero();
-    showToast(e.message || 'Could not save color');
+    showToast(e.message || t('toast_could_not_save_color'));
   }
 }
 
@@ -4306,17 +4346,17 @@ async function doSignOut() {
     setNotifBadge(0);
     loadFeed();
     if (map) renderMarkers(currentFilter);
-    showToast('Signed out');
+    showToast(t('toast_signed_out'));
   } catch (e) {
-    showToast(e.message || 'Could not sign out');
+    showToast(e.message || t('toast_could_not_sign_out'));
   }
 }
 
 function startEmailUpgrade() {
   const row = document.getElementById('email-upgrade-row');
   if (row.dataset.protected === '1') return; // already confirmed — disabled state
-  if (!sb) { showToast('Sharing is offline right now — try again later'); return; }
-  if (!myProfile) { showToast('Log your first plant to start your garden'); return; }
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
+  if (!myProfile) { showToast(t('toast_log_first_plant')); return; }
   document.getElementById('email-upgrade-edit').classList.add('visible');
   document.getElementById('email-upgrade-input').focus();
 }
@@ -4327,14 +4367,14 @@ function cancelEmailUpgrade() {
 
 async function submitEmailUpgrade() {
   const email = document.getElementById('email-upgrade-input').value.trim();
-  if (!email) { showToast('Enter an email address'); return; }
+  if (!email) { showToast(t('toast_enter_email')); return; }
   try {
     const { error } = await sb.auth.updateUser({ email: email });
     if (error) throw error;
-    showToast('Check your inbox to confirm.');
+    showToast(t('toast_check_inbox'));
     cancelEmailUpgrade();
   } catch (e) {
-    showToast(e.message || 'Could not send the link');
+    showToast(e.message || t('toast_could_not_send_link'));
   }
 }
 
@@ -4347,7 +4387,7 @@ function bumpLogCount() {
     if (localStorage.getItem('ja_log_count') !== String(count)) return; // write failed — skip nudge
     if (count === 3) {
       // The one-time nudge: fires only on the exact 3rd log, never on load
-      setTimeout(() => showToast('Add an email in Profile to keep your garden'), 3200);
+      setTimeout(() => showToast(t('toast_add_email_reminder')), 3200);
     }
   } catch (e) { /* storage unavailable — nudge is best-effort */ }
 }
