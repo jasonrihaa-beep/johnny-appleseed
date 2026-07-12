@@ -1677,6 +1677,18 @@ body.tab-map #map-view {
   line-height: 1.6;
 }
 
+/* v0.37.0 language link */
+.splash-lang-link {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--green-600);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
 /* v0.22.0 welcome-back panel */
 #welcome-back {
   position: absolute;
@@ -1769,11 +1781,12 @@ body.tab-map #map-view {
       <path d="M20 20v8"/>
     </svg>
   </div>
-  <h1 class="splash-title">Johnny <em>Appleseed</em></h1>
+  <h1 class="splash-title" translate="no">Johnny <em>Appleseed</em></h1>
   <p class="splash-tagline" data-i18n="splash_tagline"></p>
   <button class="splash-cta" onclick="getStartedFlow()" data-i18n="splash_get_started"></button>
   <button class="splash-secondary" onclick="enterApp()" data-i18n="splash_browse"></button>
   <p class="splash-privacy" data-i18n="splash_privacy"></p>
+  <button class="splash-lang-link" id="splash-lang-link" onclick="setLang(LANG === 'en' ? 'es' : 'en')"></button>
   </div><!-- /splash-content -->
   <div id="welcome-back" style="display:none">
     <p class="wb-greeting" id="wb-greeting-text"></p>
@@ -1787,7 +1800,7 @@ body.tab-map #map-view {
 
   <!-- TOP BAR -->
   <div id="topbar">
-    <span id="topbar-wordmark">Johnny <span>Appleseed</span></span>
+    <span id="topbar-wordmark" translate="no">Johnny <span>Appleseed</span></span>
     <div id="topbar-actions">
       <button class="icon-btn" aria-label="Search" onclick="showToast(t('toast_search_coming_soon'))">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/></svg>
@@ -2015,6 +2028,10 @@ body.tab-map #map-view {
             <button class="name-edit-btn" onclick="cancelEmailUpgrade()" data-i18n="settings_email_cancel"></button>
           </div>
         </div>
+        <div class="settings-row" id="language-row" onclick="setLang(LANG === 'en' ? 'es' : 'en')">
+          <span class="settings-row-label">Language / Idioma</span>
+          <span class="settings-row-value" id="language-value"></span>
+        </div>
         <div class="settings-row" onclick="showToast(t('settings_ai_coming_soon'))">
           <span class="settings-row-label" data-i18n="settings_ai_key"></span>
           <span class="settings-row-value"><span data-i18n="settings_not_set"></span> <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
@@ -2042,7 +2059,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7">Johnny Appleseed v0.36.2 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.37.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2097,8 +2114,8 @@ let toastTimer = null;
    Anon key is PUBLIC by design (static PWA) — RLS is the entire
    security layer. Never add any other key here. */
 
-/* ── I18N (v0.36.0): foundation for Spanish build ── */
-const LANG = 'en'; // Phase 1: English only; ja_lang reserved for Phase 2
+/* ── I18N (v0.37.0): bilingual (en/es) ── */
+let LANG; // Resolved on boot from ja_lang or navigator
 const STR = {
   en: {
     // Splash
@@ -2289,7 +2306,200 @@ const STR = {
     toast_enter_email: "Enter an email address",
     toast_check_inbox: "Check your inbox to confirm.",
     toast_could_not_send_link: "Could not send the link",
-    toast_add_email_reminder: "Add an email in Profile to keep your garden"
+    toast_add_email_reminder: "Add an email in Profile to keep your garden",
+    months_short: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec"
+  },
+  es: {
+    // Splash
+    splash_tagline: "Planta algo. Alimenta a alguien. Cultiva comunidad.",
+    splash_get_started: "Comenzar",
+    splash_browse: "Explorar el mapa",
+    splash_welcome_back: "Qué gusto verte de nuevo, {name}",
+    splash_ready: "¿Registramos otra?",
+    splash_lets_go: "Vamos",
+    splash_privacy: "No necesitas cuenta para explorar.\nSin rastreo. Sin anuncios. Sin vender datos.",
+    // Topbar
+    topbar_title: "Johnny Appleseed",
+    // Tabs
+    tab_map: "Mapa",
+    tab_feed: "Actividad",
+    tab_plant: "Plantar",
+    tab_profile: "Perfil",
+    // Location bar
+    location_showing: "Mostrando plantas cerca de {place}",
+    // Feed
+    feed_nearby: "Cerca",
+    feed_following: "Siguiendo",
+    feed_section_recent: "Plantaciones recientes cerca de ti",
+    feed_empty_title: "Aún no hay plantaciones cerca",
+    feed_empty_sub: "Sé la primera persona de tu zona en registrar una plantación.\nCada pin en el mapa es un regalo para un vecino.",
+    feed_empty_btn: "Registrar una plantación",
+    feed_empty_following_title: "Aún no hay jardines",
+    feed_empty_following_sub: "Sigue a un jardinero y sus jardines aparecerán aquí.",
+    feed_chip_edible: "Comestible",
+    feed_chip_wildlife: "Fauna",
+    feed_chip_pollinator: "Polinizadores",
+    feed_chip_open: "Cosecha abierta",
+    feed_chip_found: "Encontrada",
+    feed_caution: "Identificación comunitaria — verifica antes de cosechar.",
+    feed_follow: "Seguir",
+    feed_following_empty_title: "Aún no hay jardines",
+    feed_following_empty_sub: "Sigue a un jardinero y sus jardines aparecerán aquí.",
+    feed_inspired: "Inspirado",
+    feed_this_inspires_me: "Esto me inspira",
+    feed_plant_score: "Puntaje de plantación",
+    // Map filters
+    map_filter_edible: "Comestibles",
+    map_filter_wildlife: "Fauna",
+    map_filter_pollinators: "Polinizadores",
+    map_filter_near: "Cerca de mí",
+    map_filter_open: "Cosecha abierta",
+    map_fallback: "El mapa no pudo cargar.\nRevisa tu conexión y actualiza.",
+    // Map popups
+    popup_found_by: "Encontrada por",
+    popup_by: "por",
+    popup_open_harvest: "Cosecha abierta",
+    popup_score: "Puntaje",
+    popup_haze_hunt: "En algún punto de este círculo — feliz búsqueda.",
+    popup_haze_safety: "Las ubicaciones son a nivel de vecindario, por la seguridad de todos.",
+    popup_haze_private: "Patio privado — está en el mapa, no en el menú.",
+    popup_inspire: "Inspirar",
+    // Plant form
+    plant_title: "Registrar una plantación",
+    plant_subtitle: "Revisamos la temporada, la zona y el suelo por ti.",
+    plant_what_happened: "¿Qué pasó?",
+    plant_i_planted: "Lo planté",
+    plant_i_found: "Lo encontré",
+    plant_name_label: "Nombre de la planta",
+    plant_name_placeholder: "p. ej. Higuera, Zarzamora, Nogal...",
+    plant_location_label: "Ubicación",
+    plant_location_placeholder: "Se captura automáticamente al registrar",
+    plant_location_toast: "La ubicación se captura al registrar — GPS, o el centro del mapa como respaldo",
+    plant_type_label: "Tipo",
+    plant_type_edible: "Comestible",
+    plant_type_wildlife: "Fauna",
+    plant_type_pollinators: "Polinizadores",
+    plant_type_all: "Todas las anteriores",
+    plant_loc_none: "Aún sin ubicación",
+    plant_loc_refresh: "Actualizar",
+    plant_loc_map: "Colocar en el mapa",
+    plant_loc_use_center: "Usar centro del mapa",
+    plant_loc_hint: "Activa la ubicación precisa en Chrome, o coloca el pin en el mapa.",
+    plant_loc_found_hint: "Registra dónde la encontraste — colócala en el mapa si lo haces después.",
+    plant_loc_precision: "Se publica con precisión de vecindario (~100 m).",
+    plant_access_label: "¿Quién puede llegar?",
+    plant_access_open: "Lugar abierto",
+    plant_access_ask: "Preguntar primero",
+    plant_access_private: "Mi patio",
+    plant_access_caption: "Los lugares abiertos son parques, camellones y huertos comunitarios — donde plantar está permitido.",
+    plant_note_label: "Nota (opcional)",
+    plant_note_placeholder: "Preparación del suelo, método, observaciones...",
+    plant_photo_label: "Foto (opcional)",
+    plant_photo_add: "Agregar foto",
+    plant_photo_preview_alt: "Vista previa de la foto",
+    plant_photo_remove_label: "Quitar foto",
+    plant_found_caption: "Identificación comunitaria — verifica antes de comer cualquier cosa que encuentres.",
+    plant_submit: "Registrar plantación",
+    // Score preview
+    score_title: "Puntaje de plantación",
+    score_plant_now: "Planta ahora",
+    score_window_edge: "Al límite de temporada",
+    score_wrong_season: "Fuera de temporada",
+    score_do_not_plant: "No plantar",
+    score_reason_invasive: "Invasora en Texas — desplaza a las plantas nativas de las que depende la fauna. Mejor planta {alt}.",
+    score_reason_in_window: "Estás en temporada de siembra ({region} · Zona {zone}). Mejores meses: {months}.",
+    score_reason_native_suffix: " Nativa de Texas — hecha para este suelo y este calor.",
+    score_reason_edge: "Estás al límite de la temporada. Mejores meses aquí: {months}.",
+    score_reason_off_season: "Fuera de temporada en {region}. Mejores meses: {months}.",
+    score_reason_caution_prefix: " Precaución: ",
+    score_reason_note_prefix: " ",
+    plant_not_in_db: "Aún no está en nuestra base de Texas — puedes registrarla de todas formas. La búsqueda con IA para cualquier planta llegará con la función de clave Claude.",
+    plant_suggest_invasive: "Invasora — no plantar",
+    // Profile
+    profile_avatar_label: "Cambiar el color del avatar",
+    profile_default_name: "Jardinero",
+    profile_name_placeholder: "Ponle nombre a tu jardín",
+    profile_name_save: "Guardar",
+    profile_name_cancel: "Cancelar",
+    profile_my_plants: "Mis plantas",
+    profile_settings: "Ajustes",
+    profile_stat_plants: "Plantas registradas",
+    profile_stat_inspired: "Inspiraciones",
+    profile_stat_inspires_given: "Inspiraciones dadas",
+    profile_my_plants_empty: "Tu primera plantación aparecerá aquí",
+    // Settings
+    settings_sign_in: "Iniciar sesión",
+    settings_keep_garden: "Conserva tu jardín",
+    settings_google_btn: "Continuar con Google",
+    settings_or_email: "o usa tu correo",
+    settings_email_placeholder: "tu@ejemplo.com",
+    settings_email_send: "Enviar enlace",
+    settings_email_cancel: "Cancelar",
+    settings_ai_key: "Clave de IA (Claude)",
+    settings_not_set: "Sin configurar",
+    settings_feed_radius: "Radio de actividad",
+    settings_radius_value: "50 millas",
+    settings_planting_reminders: "Recordatorios de siembra",
+    settings_off: "Apagado",
+    settings_blocked: "Jardineros bloqueados",
+    settings_sign_out: "Cerrar sesión",
+    settings_clear_data: "Borrar mis datos",
+    settings_ai_coming_soon: "Los ajustes de clave de IA llegan pronto",
+    settings_radius_coming_soon: "Los ajustes de radio llegan pronto",
+    settings_reminders_coming_soon: "Los recordatorios llegan pronto",
+    settings_data_cleared: "Datos borrados de este dispositivo",
+    // Sheets
+    sheet_setup_title_default: "Ya estás en el mapa.",
+    sheet_setup_body_default: "¿Cómo te llaman los vecinos?",
+    sheet_setup_welcome_title: "Te damos la bienvenida al vecindario.",
+    sheet_setup_welcome_body: "¿Cómo te llaman los vecinos?",
+    sheet_setup_google: "Continuar con Google",
+    sheet_setup_google_caption: "Tu jardín te sigue en cualquier dispositivo. Sin esto, tus plantas viven solo en este navegador.",
+    sheet_setup_save: "Guardar",
+    sheet_setup_skip: "Omitir",
+    sheet_auth_error_title: "No se pudo iniciar sesión",
+    sheet_auth_error_dismiss: "Cerrar",
+    // Toasts
+    toast_search_coming_soon: "La búsqueda llega pronto",
+    toast_sharing_offline: "Compartir no está disponible ahora — inténtalo más tarde",
+    toast_could_not_save: "No se pudo guardar",
+    toast_could_not_load_plantings: "No se pudieron cargar las plantaciones de la comunidad",
+    toast_filter: "Filtro: {filter}",
+    toast_no_gps: "No se pudo obtener señal de GPS",
+    toast_choose_image: "Elige un archivo de imagen",
+    toast_enter_plant_name: "Primero escribe el nombre de la planta",
+    toast_set_location: "Primero define la ubicación — usa Actualizar o Colocar en el mapa",
+    toast_choose_access: "Elige quién puede llegar — selecciona un nivel de acceso",
+    toast_photo_upload_failed: "No se pudo subir la foto",
+    toast_plant_logged: "{plant} registrada. Gracias por plantar.",
+    toast_could_not_log: "No se pudo registrar — intenta de nuevo",
+    toast_feed_refreshed: "Actividad actualizada",
+    toast_could_not_post_comment: "No se pudo publicar el comentario",
+    toast_write_comment_first: "Primero escribe un comentario",
+    toast_comment_deleted: "Comentario eliminado",
+    toast_could_not_delete_comment: "No se pudo eliminar el comentario",
+    toast_could_not_load_comments: "No se pudieron cargar los comentarios",
+    toast_planting_deleted: "Plantación eliminada",
+    toast_could_not_delete: "No se pudo eliminar",
+    toast_reported: "Reportado. Gracias por cuidar el jardín.",
+    toast_could_not_report: "No se pudo enviar el reporte",
+    toast_planter_blocked: "Jardinero bloqueado",
+    toast_could_not_block: "No se pudo bloquear",
+    toast_planter_unblocked: "Jardinero desbloqueado",
+    toast_could_not_unblock: "No se pudo desbloquear",
+    toast_could_not_setup: "No se pudo configurar por ahora — puedes explorar de todas formas",
+    toast_garden_protected: "Jardín protegido — Google",
+    toast_log_first_plant: "Registra tu primera planta para comenzar tu jardín",
+    toast_name_cannot_be_empty: "El nombre no puede estar vacío",
+    toast_could_not_save_name: "No se pudo guardar el nombre",
+    toast_could_not_save_color: "No se pudo guardar el color",
+    toast_signed_out: "Sesión cerrada",
+    toast_could_not_sign_out: "No se pudo cerrar la sesión",
+    toast_enter_email: "Escribe un correo electrónico",
+    toast_check_inbox: "Revisa tu bandeja para confirmar.",
+    toast_could_not_send_link: "No se pudo enviar el enlace",
+    toast_add_email_reminder: "Agrega un correo en Perfil para conservar tu jardín",
+    months_short: "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic"
   }
 };
 
@@ -2353,7 +2563,7 @@ const DOT_HIDE_ZOOM = 16; // Dots disappear at zoom >= 16 (circle is sufficient 
    Live weather + zone APIs replace static month tables in Session 3. */
 const REGION = { name: "Cibolo, TX", zone: "8b/9a" };
 const REGION_CENTER = { lat: 29.5616, lng: -98.2269 }; // feed bounding-box anchor + GPS fallback
-const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+// v0.37.0: months localized via t('months_short') — MONTH_ABBR removed
 
 // tags: edible | wildlife | pollinator. m: planting months (1-12).
 // native: TX native. inv: invasive in TX (never plant). warn: safety note.
@@ -2471,7 +2681,8 @@ function dbFind(name) {
    30 off-season / 8 invasive. Live soil-temp scoring lands in Session 3. */
 function plantScore(plant) {
   const now = new Date().getMonth() + 1; // 1-12
-  const best = (plant.m || []).map(m => MONTH_ABBR[m-1]).join(", ");
+  const monthNames = t('months_short').split(',');
+  const best = (plant.m || []).map(m => monthNames[m-1]).join(", ");
   if (plant.inv) {
     return { score: 8, status: t('score_do_not_plant'), tier: "danger",
       reason: t('score_reason_invasive', { alt: plant.alt }) };
@@ -2895,7 +3106,7 @@ function onPlantInput(input) {
       return `<button class="suggest-item" onclick="pickPlant('${p.n.replace(/'/g, "\\'")}')">` +
         `<span class="suggest-dot ${cls}"></span>` +
         `<span class="suggest-text"><span class="suggest-name">${p.n}</span>` +
-        `<span class="suggest-sub">${sub}</span></span></button>`;
+        `<span class="suggest-sub" ${p.inv ? '' : 'translate="no"'}>${sub}</span></span></button>`;
     }).join('');
     sugBox.classList.add('visible');
   } else {
@@ -4392,6 +4603,21 @@ function bumpLogCount() {
   } catch (e) { /* storage unavailable — nudge is best-effort */ }
 }
 
+// v0.37.0: ja_lang is a SACRED key — snapshot, mutate, verify read-back, then reload
+function setLang(lang) {
+  try {
+    const prev = localStorage.getItem('ja_lang');
+    localStorage.setItem('ja_lang', lang);
+    if (localStorage.getItem('ja_lang') !== lang) {
+      console.error('ja_lang write failed — language not changed');
+      return;
+    }
+    location.reload();
+  } catch (e) {
+    console.error('Could not set language:', e);
+  }
+}
+
 function showAuthError(msg, rawError) {
   const title = t('sheet_auth_error_title');
   let detail = msg;
@@ -4418,9 +4644,17 @@ function showToast(msg) {
 
 // Init: set map mode on load since map is the default tab
 document.addEventListener('DOMContentLoaded', () => {
+  // v0.37.0: language resolution (ja_lang -> navigator -> 'en')
+  const stored = localStorage.getItem('ja_lang');
+  LANG = stored || (navigator.language && navigator.language.startsWith('es') ? 'es' : 'en');
+  document.documentElement.lang = LANG;
+
   applyStrings(); // v0.36.0: i18n static markup
   // v0.36.1: location bar template with data interpolation
   document.getElementById('location-text').textContent = t('location_showing', { place: REGION.name });
+  // v0.37.0: set language display in settings and splash
+  document.getElementById('language-value').textContent = LANG === 'en' ? 'English' : 'Español';
+  document.getElementById('splash-lang-link').textContent = LANG === 'en' ? 'Español' : 'English';
   document.getElementById('topbar').classList.add('map-mode');
   document.body.classList.add('tab-map');
   initMap();

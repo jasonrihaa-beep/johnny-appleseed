@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.36.2 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.37.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -757,17 +757,21 @@ as MyMeds' FDA `product_description` query rule.
 `REGION` constant = Cibolo TX, zone 8b/9a. Session 3 replaces static months
 with live frost/soil-temp data; the tier structure stays.
 
-## I18N architecture (v0.36.0) — foundation for Spanish build
+## I18N architecture (v0.37.0) — bilingual (en/es)
 
-- **const LANG = 'en'** (line ~2130) — hardcoded Phase 1, will become dynamic in Phase 2
-- **const STR** — single dictionary `{ en: { key: "text", ... } }`. Lookup via `t(key, vars)`.
-- **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR.en[key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
+- **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
+- **const STR** — `{ en: {...}, es: {...} }`. 177 keys each (exact parity). Lookup via `t(key, vars)`.
+- **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR[LANG][key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
 - **applyStrings()** — walker for static markup: `data-i18n="key"` sets textContent, `data-i18n-attr="attr:key"` sets attributes. Runs once on DOMContentLoaded.
 - **Dynamic sentences use templates**, never concatenation: `t('splash_welcome_back', { name: displayName })` → "Welcome back, {name}". Word order must be free to differ per language.
-- **Not extracted** (stays literal): "Johnny Appleseed" brand, "AIRIHA LLC", scientific names, PLANT_DB data content, version footer, console/log strings.
-- **ja_lang reserved** (Phase 2) — user's language preference, will live in localStorage. Not used yet; note it in sacred keys when created.
-- **Tripwire 17 exception consumed** — map popup copy ("Somewhere in this circle — happy hunting.", "Private yard — on the map, not on the menu.", "Found by") IS extracted via t() with byte-identical English output. Map re-frozen after v0.36.0.
-- **Roadmap**: v0.36.0 = infrastructure + splash/feed/topbar/tabs/popups (SHIPPED). v0.36.1 = plant form, score preview, profile, sheets. v0.36.2 = toasts, notifications, final audit. Phase 2 = Spanish dictionary + ja_lang localStorage + language picker.
+- **Not extracted** (stays literal): "Johnny Appleseed" brand, "AIRIHA LLC", scientific names (translate="no"), PLANT_DB data content, version footer, console/log strings.
+- **ja_lang** — SACRED localStorage key, 'en' | 'es'. setLang(lang) writes with read-back verify, then location.reload().
+- **Language switch UI**: Settings row "Language / Idioma" shows current language name (English | Español), tap toggles. Splash link below Browse button shows opposite language, tap switches.
+- **translate="no"** on: topbar wordmark, splash title, scientific names (suggest dropdown when not invasive), version footer. document.documentElement.lang set to LANG on boot and after switch.
+- **months_short** — both dictionaries have localized month abbreviations. Scorer uses t('months_short').split(',') for best-months lists.
+- **Logic guard**: 'Planter' comparisons use the LITERAL string (DB default), never t('profile_default_name') — "Jardinero" is presentation only.
+- **Tripwire 17 exception consumed** — map popup copy extracted v0.36.0. Map re-frozen after v0.36.0.
+- **Roadmap**: Phase 1 (v0.36.0-v0.36.2) extraction SHIPPED. Phase 2 (v0.37.0) Spanish dictionary SHIPPED. Phase 3 = Spanish plant search akas + safety-text review.
 
 ## Version fan-out — ALL must change together (currently 2)
 
@@ -790,6 +794,9 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - **`ja_profile_prompted` is SACRED** (S4d) — one-shot flag for the
   first-log setup sheet. Set at show time (with read-back verify in
   `maybeShowSetupSheet()`); once '1' the sheet can never fire again.
+- **`ja_lang` is SACRED** (v0.37.0) — user language preference, 'en' | 'es'.
+  Snapshot → mutate → verify read-back lives in `setLang()`. After write,
+  location.reload() re-renders the entire app in the new language.
 - **`ja_oauth_return` is sessionStorage, NOT sacred** (v0.12.0) —
   tab-scoped OAuth-return marker, set before linkIdentity, consumed by
   `handleOauthReturn()`. Do not add it to the sacred list; do not move
