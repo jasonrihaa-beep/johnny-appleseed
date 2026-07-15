@@ -775,6 +775,7 @@ popup CTA, EN/ES strings. Activation is a future config-only change, not a build
 | Affiliate score-preview surface (v0.38.0, dormant) | `id="score-affiliate"`, `.affiliate-btn`, `.affiliate-disclosure` | inside `#score-preview`, set in `renderScore` |
 | Affiliate popup surface (v0.38.0, dormant) | `.pin-affiliate-row/-btn/-disclosure` | end of `dbPinPopupHtml` |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
+| Build validator (RIDER v0.38.0) | `scripts/validate.js` — CSS brace balance, HTML tag balance, inline JS `node --check`, version fan-out (BUILD_RULES rule 6+7) | repo root, `scripts/` dir |
 
 ## PLANT_DB schema — the core asset
 
@@ -913,8 +914,32 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
     render. The map render itself stays frozen. backdrop-filter is
     NEVER applied over the map (Leaflet pan/zoom + blur destroys
     framerate on mid-range Android).
+18. **Auth flows are origin-agnostic and zombie-tolerant.** (Backfilled
+    RIDER v0.38.0 — referenced by the Auth clean/Return fix/Google fix 2
+    decisions above since v0.30.0 but never given its own list entry
+    until now; no behavior changed, this is a documentation fix.) Every
+    Google entry point handles BOTH link and sign-in via an
+    unconditional fallback — if linkIdentity() fails for any reason on
+    an anonymous session, fall back to signInWithOAuth() unconditionally;
+    never pattern-match fragile provider error strings. Auth errors
+    ALWAYS surface raw provider text (e.message plus e.status/e.code
+    when present), never a generic "Could not sign in". Redirect-based
+    auth errors (linkIdentity rejections navigate back with
+    ?error_code=... rather than throwing) are handled at the RETURN path
+    only — `handleOauthReturn` parses both the query string and the hash
+    fragment — never assumed to reach the call site directly.
+19. **LOCALHOST TALKS TO PRODUCTION.** There is no staging environment —
+    a locally served `index.html` uses the live Supabase URL + anon key,
+    so localhost sessions hit production auth and the production
+    database. Localhost acceptance testing is READ-AND-RENDER ONLY:
+    never submit plants, never sign in (anonymous or Google) from a
+    localhost origin. Google sign-in also fails there by design (the
+    redirect allowlist covers production origins only).
 
 ## Validate-after-edit checklist — skip none
+
+Run via `node scripts/validate.js` (covers the four checks below in one
+pass — see the "index.html landmarks" table for the script's own row).
 
 - [ ] grep confirms the edit landed; no stray duplicates of old pattern
 - [ ] CSS brace count matches per style block

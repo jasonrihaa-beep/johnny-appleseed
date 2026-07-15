@@ -18,8 +18,9 @@ Ten rules. Committed to the repo. Every Claude Code session follows all ten.
    classes, functions, or features unless explicitly instructed.
 
 6. **Validate after every edit.** CSS brace count, HTML tag balance,
-   `node --check` on inline JS. All three pass or the work is not done.
-   Do not declare victory early.
+   `node --check` on inline JS, plus version fan-out consistency (rule 7)
+   — run all four via `node scripts/validate.js` from repo root. It must
+   exit 0 before any work is declared done. Do not declare victory early.
 
 7. **Version fan-out on every ship.** Footer + sw.js cache name move in
    lockstep. A shipped edit without a cache bump is a bug delivery system.
