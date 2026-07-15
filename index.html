@@ -260,6 +260,28 @@ body.tab-map #map-view {
   color: var(--green-600);
 }
 
+/* v0.38.0 affiliate CTA in DB-pin popups (dormant) */
+.leaflet-popup-content .pin-affiliate-row {
+  margin-top: 8px;
+}
+.leaflet-popup-content .pin-affiliate-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid rgba(85,136,102,0.4);
+  color: var(--green-400);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.leaflet-popup-content .pin-affiliate-disclosure {
+  display: block;
+  font-size: 10.5px;
+  color: #8FA398;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
 #map-fallback {
   position: absolute;
   inset: 0;
@@ -1026,6 +1048,33 @@ body.tab-map #map-view {
 }
 
 #score-preview.visible { display: block; }
+
+/* v0.38.0 affiliate CTA (dormant) — empty #score-affiliate renders nothing */
+.affiliate-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+  padding: 10px 14px;
+  text-align: center;
+  background: transparent;
+  border: 1px solid var(--stone-300);
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--green-400);
+  text-decoration: none;
+  cursor: pointer;
+}
+.affiliate-btn:hover { border-color: var(--green-400); }
+.affiliate-disclosure {
+  font-size: 11px;
+  color: var(--stone-500);
+  text-align: center;
+  line-height: 1.5;
+  margin: 6px 2px 0;
+}
 
 .score-header {
   display: flex;
@@ -1971,6 +2020,7 @@ body.tab-map #map-view {
           <div class="score-bar-fill" id="score-bar" style="width:94%"></div>
         </div>
         <p class="score-reason" id="score-reason"></p>
+        <div id="score-affiliate"></div>
       </div>
 
       <p class="form-caption" id="found-caption" style="display:none" data-i18n="plant_found_caption"></p>
@@ -2059,7 +2109,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.37.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.38.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2223,6 +2273,10 @@ const STR = {
     score_reason_note_prefix: " ",
     plant_not_in_db: "Not in our Texas database yet — logging still works. AI lookup for any plant arrives with the Claude key feature.",
     plant_suggest_invasive: "Invasive — do not plant",
+    // Affiliate (dormant, v0.38.0)
+    affiliate_cta: "Get this plant",
+    affiliate_disclosure: "Affiliate link — Johnny Appleseed may earn a commission.",
+    affiliate_about: "Some plant links are affiliate links. They never affect scores, rankings, or safety information.", // reserved for a future About section — no surface renders this key yet
     // Profile
     profile_avatar_label: "Change avatar color",
     profile_default_name: "Planter",
@@ -2415,6 +2469,10 @@ const STR = {
     score_reason_note_prefix: " ",
     plant_not_in_db: "Aún no está en nuestra base de Texas — puedes registrarla de todas formas. La búsqueda con IA para cualquier planta llegará con la función de clave Claude.",
     plant_suggest_invasive: "Invasora — no plantar",
+    // Affiliate (dormant, v0.38.0)
+    affiliate_cta: "Consigue esta planta",
+    affiliate_disclosure: "Enlace de afiliado — Johnny Appleseed puede ganar una comisión.",
+    affiliate_about: "Algunos enlaces de plantas son enlaces de afiliados. Nunca afectan las puntuaciones, clasificaciones ni la información de seguridad.", // reservado para una futura sección Acerca de — ninguna superficie usa esta clave todavía
     // Profile
     profile_avatar_label: "Cambiar el color del avatar",
     profile_default_name: "Jardinero",
@@ -2541,6 +2599,23 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const sb = (typeof supabase !== 'undefined')
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
+
+/* ── AFFILIATE PLUMBING (v0.38.0, dormant) ──
+   Doctrine: tier the individual, never the network — no ads, no pay-to-rank,
+   safety info never gated. Affiliate is additive convenience only, no click
+   tracking or telemetry of any kind (the anchor tag is the whole feature).
+   Invasive PLANT_DB entries (inv:true) NEVER resolve a link, regardless of
+   config — see affiliateUrl(). Honest states: a null resolver means NO
+   button, NO disclosure, NO placeholder renders anywhere.
+   Activation = edit this object only. Review the chosen program's app/PWA
+   link policy before enabling. */
+const AFFILIATE_CONFIG = {
+  enabled: false,        // master switch — ships false
+  program: null,         // set at activation, e.g. 'xyz'
+  linkTemplate: null,    // e.g. 'https://ex.com/s?q={q}&aff={tag}'
+  tag: null,             // partner/affiliate id
+  queryField: 'common',  // 'common' | 'sci' — {q} source
+};
 
 let selectedType = 'wildlife';   // matches default-selected Type button
 let selectedAccess = null;  // v0.17.0: REQUIRED explicit choice (decision 5); DB default 'private' stays as schema backstop
@@ -2674,6 +2749,20 @@ const PLANT_DB = [
 function dbFind(name) {
   const q = name.trim().toLowerCase();
   return PLANT_DB.find(p => p.n.toLowerCase() === q) || null;
+}
+
+// v0.38.0 affiliate resolver — returns a URL or null, never anything else.
+// PLANT_DB entries carry NO new data in this build; buy is a documented
+// optional slot only (absolute URL, returned verbatim when present).
+function affiliateUrl(plantName) {
+  if (!AFFILIATE_CONFIG.enabled || !AFFILIATE_CONFIG.linkTemplate || !AFFILIATE_CONFIG.tag) return null;
+  const entry = dbFind(plantName);
+  if (!entry || entry.inv) return null; // invasive exclusion — correctness invariant
+  if (entry.buy) return entry.buy;
+  const query = (AFFILIATE_CONFIG.queryField === 'sci' && entry.sci) ? entry.sci : entry.n;
+  return AFFILIATE_CONFIG.linkTemplate
+    .replace('{q}', encodeURIComponent(query))
+    .replace('{tag}', encodeURIComponent(AFFILIATE_CONFIG.tag));
 }
 
 /* ── PlantScore v1 — deterministic, honest, offline ──
@@ -2838,6 +2927,11 @@ function dbPinPopupHtml(row) {
   const isFind = row.kind === 'discovered';
   const caution = isFind && (row.tags || []).includes('edible')
     ? ' &middot; Community ID &mdash; verify before harvesting.' : '';
+  // v0.38.0 affiliate (dormant): null resolver -> empty string, nothing renders
+  const affUrl = affiliateUrl(row.plant_name);
+  const affiliateHtml = affUrl
+    ? `<div class="pin-affiliate-row"><a class="pin-affiliate-btn" href="${esc(affUrl)}" target="_blank" rel="sponsored noopener noreferrer">${t('affiliate_cta')}</a><span class="pin-affiliate-disclosure">${t('affiliate_disclosure')}</span></div>`
+    : '';
   return `<strong>${esc(row.plant_name)}</strong>` +
     (row.sci ? `<span class="pin-sci">${esc(row.sci)}</span>` : '') +
     // Photo only — no placeholder in popups (space-constrained; omit instead)
@@ -2864,7 +2958,8 @@ function dbPinPopupHtml(row) {
         ${t('popup_inspire')}
       </button>
       <span class="pin-insp-count" id="pin-insp-count-${esc(row.id)}">&ndash;</span>
-    </div>`;
+    </div>` +
+    affiliateHtml;
 }
 
 function setPinInspire(btn, inspired, count) {
@@ -3079,6 +3174,12 @@ function renderScore(plant) {
   statusEl.textContent = sc.status;
   statusEl.className = 'score-status' + (sc.tier === 'warn' ? ' warn' : sc.tier === 'danger' ? ' danger' : '');
   document.getElementById('score-reason').textContent = sc.reason;
+  // v0.38.0 affiliate (dormant): null resolver renders nothing (honest states)
+  const affEl = document.getElementById('score-affiliate');
+  const affUrl = affiliateUrl(plant.n);
+  affEl.innerHTML = affUrl
+    ? `<a class="affiliate-btn" href="${esc(affUrl)}" target="_blank" rel="sponsored noopener noreferrer">${t('affiliate_cta')}</a><p class="affiliate-disclosure">${t('affiliate_disclosure')}</p>`
+    : '';
 }
 
 function hideScore() {

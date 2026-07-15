@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.37.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.38.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -359,6 +359,41 @@ Written for the agent, not for humans.
    (action sheet, setup sheet, notif panel) 1100-1199; splash 2000;
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
+
+## Affiliate plumbing decisions (final — from S-AFF_SPEC.md, v0.38.0)
+
+Ships fully DORMANT — `AFFILIATE_CONFIG.enabled: false`; zero affiliate UI renders on the
+live site after this build.
+
+1. **Program-agnostic layer:** one config object (`AFFILIATE_CONFIG`) + one resolver
+   (`affiliateUrl`). Activating a real program later = editing config values only, zero
+   changes to surface code.
+2. **Doctrine:** tier the individual, never the network — no ads, no pay-to-rank, safety info
+   never gated. Affiliate is additive convenience only. No click tracking or affiliate
+   telemetry of any kind — the anchor tag is the whole feature.
+3. **INVASIVE EXCLUSION (correctness invariant, honest-states class):** any `PLANT_DB` entry
+   with `inv:true` NEVER resolves an affiliate link, regardless of config or per-plant
+   overrides — enforced inside `affiliateUrl()`. Upgrade path (documented, not built): route
+   invasives to their alt native instead.
+4. **Honest states:** if `affiliateUrl()` returns `null` — disabled, unconfigured, invasive, or
+   no resolvable query — NO button, NO disclosure, NO placeholder renders. Null means absent.
+5. **FTC disclosure is mandatory UI:** a disclosure line (`t('affiliate_disclosure')`) renders
+   directly beneath EVERY affiliate action, always, in the active language.
+6. **Every affiliate anchor:** `target="_blank" rel="sponsored noopener noreferrer"`.
+7. **Surfaces in v1:** score preview (`#score-affiliate`, in `renderScore`) + DB-pin map popups
+   (`dbPinPopupHtml`) only. Feed cards explicitly excluded. `PIN_SPOTS` example pins excluded
+   (example content stays commerce-free — `renderMarkers`'s PIN_SPOTS branch never calls
+   `dbPinPopupHtml`).
+8. **Amazon-class program restrictions on PWAs** are handled by the dormant-by-default config:
+   compliance review happens at activation, per program, as a config decision.
+9. **No schema changes, no new localStorage keys.** `PLANT_DB` entries gain no new data in this
+   build — `buy` (optional absolute-URL override, returned verbatim by `affiliateUrl`) is a
+   documented slot only, unused by any current entry.
+10. **`affiliate_about` string is reserved,** intentionally unused — no About-section surface
+    exists yet to render it.
+
+Roadmap: ✅ Affiliate plumbing (v0.38.0): dormant config + resolver, score-preview CTA, DB-pin
+popup CTA, EN/ES strings. Activation is a future config-only change, not a build.
 
 ## Contrast token fixes (final — from CONTRAST3_SPEC.md, v0.28.0)
 
@@ -736,6 +771,9 @@ Written for the agent, not for humans.
 | Access validation (v0.17.0) | `selectedAccess = null` + block in submitPlant | with location block |
 | Dark tokens (v0.18.0) | `:root` remapped --stone-100/200/300/500/700, --ink, plus --glass/--glass-border/--glow-amber | top of style block |
 | Firefly glow (v0.18.0) | `#splash::before` dual radial gradients, `@keyframes firefly-pulse`, motion-safe guards | splash CSS |
+| Affiliate config + resolver (v0.38.0, dormant) | `const AFFILIATE_CONFIG`, `function affiliateUrl` | after `sb` init / after `dbFind` |
+| Affiliate score-preview surface (v0.38.0, dormant) | `id="score-affiliate"`, `.affiliate-btn`, `.affiliate-disclosure` | inside `#score-preview`, set in `renderScore` |
+| Affiliate popup surface (v0.38.0, dormant) | `.pin-affiliate-row/-btn/-disclosure` | end of `dbPinPopupHtml` |
 | Boot | `DOMContentLoaded` → `initMap()` + `loadFeed()` + `loadOwnProfile()` | end of script |
 
 ## PLANT_DB schema — the core asset
@@ -760,7 +798,8 @@ with live frost/soil-temp data; the tier structure stays.
 ## I18N architecture (v0.37.0) — bilingual (en/es)
 
 - **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
-- **const STR** — `{ en: {...}, es: {...} }`. 177 keys each (exact parity). Lookup via `t(key, vars)`.
+- **const STR** — `{ en: {...}, es: {...} }`. 180 keys each (exact parity, +3 in v0.38.0 for the
+  dormant affiliate strings). Lookup via `t(key, vars)`.
 - **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR[LANG][key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
 - **applyStrings()** — walker for static markup: `data-i18n="key"` sets textContent, `data-i18n-attr="attr:key"` sets attributes. Runs once on DOMContentLoaded.
 - **Dynamic sentences use templates**, never concatenation: `t('splash_welcome_back', { name: displayName })` → "Welcome back, {name}". Word order must be free to differ per language.
@@ -1064,5 +1103,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
   passed). TRIPWIRE 17 exception consumed: dot visibility + circle
   popups edited; all else frozen. Map re-freezes after v0.35.0, NO
   further exceptions. Acceptance list fully cleared.
+- ✅ Affiliate plumbing (v0.38.0, SHIPS DORMANT): program-agnostic
+  `AFFILIATE_CONFIG` + `affiliateUrl()` resolver, invasive-exclusion
+  invariant, score-preview + DB-pin popup CTA surfaces (feed cards and
+  PIN_SPOTS excluded), mandatory FTC disclosure line, EN/ES strings.
+  `enabled: false` — zero affiliate UI renders live. Activation is a
+  future config-only change. No schema/localStorage changes.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
