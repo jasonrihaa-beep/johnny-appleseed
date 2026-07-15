@@ -2109,7 +2109,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.38.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.39.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
 
     </div>
 
@@ -2600,21 +2600,33 @@ const sb = (typeof supabase !== 'undefined')
   ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
-/* ── AFFILIATE PLUMBING (v0.38.0, dormant) ──
-   Doctrine: tier the individual, never the network — no ads, no pay-to-rank,
-   safety info never gated. Affiliate is additive convenience only, no click
-   tracking or telemetry of any kind (the anchor tag is the whole feature).
-   Invasive PLANT_DB entries (inv:true) NEVER resolve a link, regardless of
-   config — see affiliateUrl(). Honest states: a null resolver means NO
-   button, NO disclosure, NO placeholder renders anywhere.
+/* ── AFFILIATE PLUMBING (v0.39.0, dormant) ──
+   PURCHASE-INTENT DOCTRINE: affiliate links ONLY for products a user buys
+   to ACT on a score — seeds, plants, tools, soil kits, frost cloth. NEVER
+   affiliate information, data sources, or educational content; climate
+   data stays free and attributed, planting guidance stays free app
+   content. Classification test: "would the user buy this to act on a
+   score?" Information is the product, not an upsell.
+   NETWORK-WRAPPED RESOLUTION: affiliate networks (Awin) use wrapper URLs
+   where the destination is an encoded parameter. affiliateUrl() therefore
+   resolves in two stages: (a) destination = per-plant buy override if
+   present, else searchTemplate with {q}; (b) if wrapTemplate is set, the
+   final URL wraps that destination ({dest}) inside it, encoded exactly
+   once. No click tracking or affiliate telemetry of any kind — the anchor
+   tag is the whole feature. Invasive PLANT_DB entries (inv:true) NEVER
+   resolve a link, checked first — before overrides, before templates.
+   Honest states: a null resolver means NO button, NO disclosure, NO
+   placeholder renders anywhere.
    Activation = edit this object only. Review the chosen program's app/PWA
    link policy before enabling. */
 const AFFILIATE_CONFIG = {
   enabled: false,        // master switch — ships false
-  program: null,         // set at activation, e.g. 'xyz'
-  linkTemplate: null,    // e.g. 'https://ex.com/s?q={q}&aff={tag}'
-  tag: null,             // partner/affiliate id
-  queryField: 'common',  // 'common' | 'sci' — {q} source
+  program: null,         // e.g. 'botanical-interests-awin'
+  merchantId: null,      // {mid} — Awin awinmid
+  tag: null,             // {tag} — Awin awinaffid
+  wrapTemplate: null,    // e.g. 'https://www.awin1.com/cread.php?awinmid={mid}&awinaffid={tag}&ued={dest}'
+  searchTemplate: null,  // e.g. 'https://www.botanicalinterests.com/search?q={q}'
+  queryField: 'common',  // 'common' | 'sci'
 };
 
 let selectedType = 'wildlife';   // matches default-selected Type button
@@ -2751,18 +2763,24 @@ function dbFind(name) {
   return PLANT_DB.find(p => p.n.toLowerCase() === q) || null;
 }
 
-// v0.38.0 affiliate resolver — returns a URL or null, never anything else.
-// PLANT_DB entries carry NO new data in this build; buy is a documented
-// optional slot only (absolute URL, returned verbatim when present).
+// v0.39.0 affiliate resolver — returns a URL or null, never anything else.
+// Two-stage: destination (buy override or searchTemplate) then, if
+// wrapTemplate is configured, wrapped with exactly one encode of the full
+// destination. PLANT_DB entries carry NO new data in this build; buy is a
+// documented optional slot only (destination URL, wrapped like any other).
 function affiliateUrl(plantName) {
-  if (!AFFILIATE_CONFIG.enabled || !AFFILIATE_CONFIG.linkTemplate || !AFFILIATE_CONFIG.tag) return null;
+  const { enabled, searchTemplate, wrapTemplate, merchantId, tag, queryField } = AFFILIATE_CONFIG;
+  if (!enabled || !searchTemplate) return null;
   const entry = dbFind(plantName);
-  if (!entry || entry.inv) return null; // invasive exclusion — correctness invariant
-  if (entry.buy) return entry.buy;
-  const query = (AFFILIATE_CONFIG.queryField === 'sci' && entry.sci) ? entry.sci : entry.n;
-  return AFFILIATE_CONFIG.linkTemplate
-    .replace('{q}', encodeURIComponent(query))
-    .replace('{tag}', encodeURIComponent(AFFILIATE_CONFIG.tag));
+  if (entry?.inv) return null; // invasive exclusion — correctness invariant, checked first
+  if (wrapTemplate && (!merchantId || !tag)) return null; // honest states: never emit a half-configured tracking link
+  const query = (queryField === 'sci' && entry?.sci) ? entry.sci : (entry?.n || plantName);
+  const dest = entry?.buy ? entry.buy : searchTemplate.replace('{q}', encodeURIComponent(query));
+  if (!wrapTemplate) return dest;
+  return wrapTemplate
+    .replace('{mid}', encodeURIComponent(merchantId))
+    .replace('{tag}', encodeURIComponent(tag))
+    .replace('{dest}', encodeURIComponent(dest));
 }
 
 /* ── PlantScore v1 — deterministic, honest, offline ──

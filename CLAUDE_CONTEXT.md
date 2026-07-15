@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.38.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.39.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -360,23 +360,24 @@ Written for the agent, not for humans.
    toast 3000 (toast must never be occluded). Violations fixed: toast
    200 → 3000, notif-panel 400/401 → 1150/1151.
 
-## Affiliate plumbing decisions (final — from S-AFF_SPEC.md, v0.38.0)
+## Affiliate plumbing decisions (final — from S-AFF_SPEC.md v0.38.0, amended by S-AFF2_SPEC.md v0.39.0)
 
 Ships fully DORMANT — `AFFILIATE_CONFIG.enabled: false`; zero affiliate UI renders on the
 live site after this build.
 
 1. **Program-agnostic layer:** one config object (`AFFILIATE_CONFIG`) + one resolver
-   (`affiliateUrl`). Activating a real program later = editing config values only, zero
-   changes to surface code.
+   (`affiliateUrl`), now a two-stage resolver (destination → optional wrap, v0.39.0).
+   Activating a real program later = editing config values only, zero changes to surface code.
 2. **Doctrine:** tier the individual, never the network — no ads, no pay-to-rank, safety info
    never gated. Affiliate is additive convenience only. No click tracking or affiliate
    telemetry of any kind — the anchor tag is the whole feature.
 3. **INVASIVE EXCLUSION (correctness invariant, honest-states class):** any `PLANT_DB` entry
    with `inv:true` NEVER resolves an affiliate link, regardless of config or per-plant
-   overrides — enforced inside `affiliateUrl()`. Upgrade path (documented, not built): route
-   invasives to their alt native instead.
-4. **Honest states:** if `affiliateUrl()` returns `null` — disabled, unconfigured, invasive, or
-   no resolvable query — NO button, NO disclosure, NO placeholder renders. Null means absent.
+   overrides — enforced inside `affiliateUrl()`, checked FIRST, before overrides, before
+   templates. Upgrade path (documented, not built): route invasives to their alt native instead.
+4. **Honest states:** if `affiliateUrl()` returns `null` — disabled, unconfigured, invasive,
+   half-configured wrap (wrapTemplate set but merchantId/tag missing), or no resolvable query —
+   NO button, NO disclosure, NO placeholder renders. Null means absent.
 5. **FTC disclosure is mandatory UI:** a disclosure line (`t('affiliate_disclosure')`) renders
    directly beneath EVERY affiliate action, always, in the active language.
 6. **Every affiliate anchor:** `target="_blank" rel="sponsored noopener noreferrer"`.
@@ -387,13 +388,30 @@ live site after this build.
 8. **Amazon-class program restrictions on PWAs** are handled by the dormant-by-default config:
    compliance review happens at activation, per program, as a config decision.
 9. **No schema changes, no new localStorage keys.** `PLANT_DB` entries gain no new data in this
-   build — `buy` (optional absolute-URL override, returned verbatim by `affiliateUrl`) is a
-   documented slot only, unused by any current entry.
+   build — `buy` (optional slot, a destination URL) is wrapped by stage (b) like any other
+   destination (amends v0.38.0's "returned verbatim"); verbatim return only when `wrapTemplate`
+   is null (direct programs). Unused by any current entry; curation is an activation-day task
+   pending program approval.
 10. **`affiliate_about` string is reserved,** intentionally unused — no About-section surface
     exists yet to render it.
+11. **PURCHASE-INTENT DOCTRINE (v0.39.0, locked):** affiliate links ONLY for products a user
+    buys to ACT on a score — seeds, plants, tools, soil kits, frost cloth. NEVER affiliate
+    information, data sources, or educational content; climate data stays free and attributed,
+    planting guidance stays free app content. Classification test: "would the user buy this to
+    act on a score?" Information is the product, not an upsell.
+12. **NETWORK-WRAPPED LINKS (v0.39.0):** affiliate networks (Awin) use wrapper URLs where the
+    destination is an encoded parameter. The resolver builds in two stages: (a) destination =
+    per-plant `buy` override if present, else `searchTemplate` with `{q}`; (b) if
+    `wrapTemplate` is set, final URL = `wrapTemplate` with `{mid}`/`{tag}` substituted and
+    `{dest}` = `encodeURIComponent(destination)` — exactly one encode of the full destination,
+    fixing v0.38.0's latent double-encoding defect. Config key `linkTemplate` is REPLACED by
+    `wrapTemplate` + `searchTemplate` + `merchantId` (no migration needed — `AFFILIATE_CONFIG`
+    has never been activated, not sacred state).
 
 Roadmap: ✅ Affiliate plumbing (v0.38.0): dormant config + resolver, score-preview CTA, DB-pin
-popup CTA, EN/ES strings. Activation is a future config-only change, not a build.
+popup CTA, EN/ES strings. ✅ Wrapped-link resolver v2 + purchase-intent doctrine (v0.39.0):
+two-stage resolver for network-wrapped programs (Awin-style), still dormant. Activation is a
+future config-only change, not a build.
 
 ## Contrast token fixes (final — from CONTRAST3_SPEC.md, v0.28.0)
 
@@ -1134,5 +1152,12 @@ pass — see the "index.html landmarks" table for the script's own row).
   PIN_SPOTS excluded), mandatory FTC disclosure line, EN/ES strings.
   `enabled: false` — zero affiliate UI renders live. Activation is a
   future config-only change. No schema/localStorage changes.
+- ✅ Wrapped-link resolver v2 (v0.39.0, SHIPS DORMANT): two-stage
+  `affiliateUrl()` (destination → optional network wrap) replaces
+  v0.38.0's single-stage `linkTemplate`, fixing its latent double-encode
+  defect against wrapper-style networks (Awin `?ued=`). Purchase-intent
+  doctrine locked: affiliate links only for buy-to-act-on-a-score
+  products, never information/data/education. `enabled: false` still —
+  no live UI change. No schema/localStorage changes.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
