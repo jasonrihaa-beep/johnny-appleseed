@@ -6,7 +6,23 @@
 <meta name="theme-color" content="#14211A">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Johnny Appleseed</title>
+<title>Johnny Appleseed — Plant something. Feed someone.</title>
+<meta name="description" content="A free community map of planted and found plants. Log what you grow, discover what's near you, and help feed your neighborhood. English y Español.">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta property="og:title" content="Johnny Appleseed — Plant something. Feed someone.">
+<meta property="og:description" content="A free community map of planted and found plants. Log what you grow, discover what's near you, and help feed your neighborhood. English y Español.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://johnnyappleseed.farm/">
+<meta property="og:image" content="https://johnnyappleseed.farm/assets/hero-image.jpg">
+<meta property="og:site_name" content="Johnny Appleseed">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_MX">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Johnny Appleseed — Plant something. Feed someone.">
+<meta name="twitter:description" content="A free community map of planted and found plants. Log what you grow, discover what's near you, and help feed your neighborhood. English y Español.">
+<meta name="twitter:image" content="https://johnnyappleseed.farm/assets/hero-image.jpg">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,6 +58,7 @@
   --glass-border: rgba(245,241,232,0.14);
   --glow-amber: rgba(244,161,39,0.22);
   --red-700:   #B91C1C;
+  --red-400:   #E8836F;
   --red-200:   #FECACA;
   --red-50:    #FEF2F2;
   --violet-700: #6D28D9;
@@ -257,7 +274,7 @@ body.tab-map #map-view {
 .leaflet-popup-content .pin-insp-count {
   font-size: 12px;
   font-weight: 600;
-  color: var(--green-600);
+  color: var(--green-400);
 }
 
 /* v0.38.0 affiliate CTA in DB-pin popups (dormant) */
@@ -402,7 +419,7 @@ body.tab-map #map-view {
 .follow-btn.following {
   background: var(--green-700);
   border-color: var(--green-700);
-  color: var(--stone-100);
+  color: var(--ink);
 }
 
 /* ── S4c: comments, overflow, action sheet, blocked list ── */
@@ -505,7 +522,7 @@ body.tab-map #map-view {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.sheet-btn.danger { color: var(--red-700); }
+.sheet-btn.danger { color: var(--red-400); }
 .sheet-btn.cancel { border: none; background: transparent; color: var(--stone-500); margin-bottom: 0; }
 #action-sheet .form-input { margin-bottom: 8px; }
 
@@ -831,7 +848,7 @@ body.tab-map #map-view {
   color: var(--stone-500);
 }
 .score-badge span {
-  color: var(--green-600);
+  color: var(--green-400);
   font-weight: 600;
 }
 
@@ -1005,7 +1022,7 @@ body.tab-map #map-view {
 }
 #found-info.visible { display: block; }
 .found-info-tags { display: block; color: var(--green-400); font-weight: 500; } /* v0.28.0 light on dark */
-.found-info-warn { display: block; color: var(--red-700); margin-top: 3px; }
+.found-info-warn { display: block; color: var(--red-400); margin-top: 3px; }
 .found-info-note { display: block; color: var(--stone-700); margin-top: 3px; }
 
 /* v0.13.0 Found chip + harvest caution (feed) */
@@ -1315,7 +1332,7 @@ body.tab-map #map-view {
   border-radius: 100px;
   border: none;
   background: var(--green-700);
-  color: var(--stone-100);
+  color: var(--ink);
   font-size: 14px;
   font-weight: 500;
   font-family: var(--font-sans);
@@ -1730,7 +1747,7 @@ body.tab-map #map-view {
 .splash-lang-link {
   margin-top: 16px;
   font-size: 13px;
-  color: var(--green-600);
+  color: var(--green-400);
   background: none;
   border: none;
   cursor: pointer;
@@ -2109,7 +2126,8 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.39.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.40.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;margin-top:6px"><a href="mailto:jasonrihaa@gmail.com" style="color:var(--stone-500)" data-i18n="footer_contact"></a></p>
 
     </div>
 
@@ -2361,6 +2379,7 @@ const STR = {
     toast_check_inbox: "Check your inbox to confirm.",
     toast_could_not_send_link: "Could not send the link",
     toast_add_email_reminder: "Add an email in Profile to keep your garden",
+    footer_contact: "Contact",
     months_short: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec"
   },
   es: {
@@ -2557,6 +2576,7 @@ const STR = {
     toast_check_inbox: "Revisa tu bandeja para confirmar.",
     toast_could_not_send_link: "No se pudo enviar el enlace",
     toast_add_email_reminder: "Agrega un correo en Perfil para conservar tu jardín",
+    footer_contact: "Contacto",
     months_short: "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic"
   }
 };

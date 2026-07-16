@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.39.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.40.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -732,6 +732,36 @@ future config-only change, not a build.
    flash before tiles load (the map CONTAINER background, not the map
    render — allowed).
 
+## PublicShell decisions (final — from PUBLICSHELL_SPEC.md, v0.40.0)
+
+1. **No new binary assets.** Favicon + apple-touch-icon LINK to the existing
+   `icons/icon-192.png` / `icon-512.png` (browsers accept PNG favicons;
+   Apple scales 192 fine). Share image (OG/Twitter) is the existing
+   `assets/hero-image.jpg` via absolute `https://johnnyappleseed.farm/...` URL.
+2. **Head/SEO landmark added:** title, meta description, favicon links,
+   apple-touch-icon, OpenGraph (title/description/type/url/image/site_name/
+   locale + locale:alternate es_MX), Twitter summary_large_image card —
+   inserted right after the theme-color meta tag.
+3. **Contrast fixes were TEXT-TOKEN SWAPS ONLY** (no layout changes): six
+   selectors (`#pick-confirm`, `.follow-btn.following` → `var(--ink)`;
+   `.sheet-btn.danger`, `.found-info-warn` → new `var(--red-400)`;
+   `.splash-lang-link`, `.leaflet-popup-content .pin-insp-count`,
+   `.score-badge span` → `var(--green-400)`). `--red-400: #E8836F` added to
+   `:root` (no red-4xx token existed before this build). Popup rule edits
+   fall inside the already-consumed tripwire-17 popup exception — the map
+   RENDER itself was not touched.
+4. **Contact channel:** Profile footer, directly under the existing honesty
+   line, a small muted `mailto:` link (`--stone-500`, no emoji). New i18n
+   keys `footer_contact` (en "Contact" / es "Contacto") added to both
+   dictionaries — key parity maintained (181/181).
+5. **robots.txt added** (repo root): `User-agent: *` / `Allow: /` — this is
+   a public site, no crawl restrictions intended.
+6. **manifest.json `lang`: `en-US` → `en`** — app is bilingual (en/es) at
+   runtime via `ja_lang`; a neutral `en` avoids overclaiming a single
+   locale in the install manifest. Runtime language switching (`ja_lang`,
+   `document.documentElement.lang`) is unaffected — this is the static
+   manifest field only.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -789,6 +819,9 @@ future config-only change, not a build.
 | Access validation (v0.17.0) | `selectedAccess = null` + block in submitPlant | with location block |
 | Dark tokens (v0.18.0) | `:root` remapped --stone-100/200/300/500/700, --ink, plus --glass/--glass-border/--glow-amber | top of style block |
 | Firefly glow (v0.18.0) | `#splash::before` dual radial gradients, `@keyframes firefly-pulse`, motion-safe guards | splash CSS |
+| Head/SEO block (v0.40.0) | meta description, OG/Twitter tags, favicon/apple-touch-icon links | `<head>`, after theme-color meta |
+| Footer contact link (v0.40.0) | `data-i18n="footer_contact"`, `mailto:` anchor | Profile footer, under version/honesty line |
+| robots.txt (v0.40.0) | `User-agent: *` / `Allow: /` | repo root |
 | Affiliate config + resolver (v0.38.0, dormant) | `const AFFILIATE_CONFIG`, `function affiliateUrl` | after `sb` init / after `dbFind` |
 | Affiliate score-preview surface (v0.38.0, dormant) | `id="score-affiliate"`, `.affiliate-btn`, `.affiliate-disclosure` | inside `#score-preview`, set in `renderScore` |
 | Affiliate popup surface (v0.38.0, dormant) | `.pin-affiliate-row/-btn/-disclosure` | end of `dbPinPopupHtml` |
@@ -817,8 +850,8 @@ with live frost/soil-temp data; the tier structure stays.
 ## I18N architecture (v0.37.0) — bilingual (en/es)
 
 - **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
-- **const STR** — `{ en: {...}, es: {...} }`. 180 keys each (exact parity, +3 in v0.38.0 for the
-  dormant affiliate strings). Lookup via `t(key, vars)`.
+- **const STR** — `{ en: {...}, es: {...} }`. 181 keys each (exact parity, +1 in v0.40.0 for
+  `footer_contact`; +3 in v0.38.0 for the dormant affiliate strings). Lookup via `t(key, vars)`.
 - **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR[LANG][key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
 - **applyStrings()** — walker for static markup: `data-i18n="key"` sets textContent, `data-i18n-attr="attr:key"` sets attributes. Runs once on DOMContentLoaded.
 - **Dynamic sentences use templates**, never concatenation: `t('splash_welcome_back', { name: displayName })` → "Welcome back, {name}". Word order must be free to differ per language.
@@ -1159,5 +1192,11 @@ pass — see the "index.html landmarks" table for the script's own row).
   doctrine locked: affiliate links only for buy-to-act-on-a-score
   products, never information/data/education. `enabled: false` still —
   no live UI change. No schema/localStorage changes.
+- ✅ PublicShell (v0.40.0): head/SEO block (meta description, OG, Twitter
+  card, favicon/apple-touch-icon linking existing PNGs — no new binary
+  assets), six computed-WCAG contrast fixes (new `--red-400` token),
+  muted mailto contact link in the Profile footer (`footer_contact`
+  en/es), `robots.txt` (Allow: /), `manifest.json` lang → neutral `en`.
+  Schema unchanged. Map render untouched (tripwire 17 not invoked).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
