@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.40.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.41.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -762,6 +762,46 @@ future config-only change, not a build.
    `document.documentElement.lang`) is unaffected — this is the static
    manifest field only.
 
+## Delete-account decisions (final — from DELETE_SPEC.md, v0.41.0)
+
+1. **Client side only.** The actual erasure runs server-side in a
+   dashboard-deployed Supabase Edge Function (`delete-account`) — it sweeps
+   Storage then deletes the auth user, which cascades every table (verified
+   against both schema files). This build never creates or deploys that
+   function; it only calls it.
+2. **Settings row, durable sessions only:** `#delete-account-row`
+   (`var(--red-400)` label) sits directly below "Clear my data", gated by
+   the SAME durable/non-anonymous check as `#sign-out-row` in
+   `renderEmailRow()` — anonymous users already have "Clear my data" as
+   their erasure path, and the function requires an auth session anyway.
+3. **Two-step confirm, no single-tap destruction.** `openDeleteConfirmSheet()`
+   reuses the `#action-sheet` component (same markup/classes as the generic
+   `openSheet()`, but built directly — the generic sheet has no body-text or
+   disabled-button support, so this is a dedicated builder, not a change to
+   `openSheet()`'s contract). The confirm button renders `disabled` with a
+   3-2-1 countdown (`deleteCountdownTimer`, plain `setInterval`) before it
+   arms; Cancel is always immediately tappable. `closeSheet()` clears the
+   timer if the sheet is dismissed early — the disabled countdown must never
+   leak into a later, unrelated sheet.
+4. **The call:** `doDeleteAccount()` closes the sheet first (matches the
+   existing `runSheetAction` convention of closing before the handler runs),
+   then `POST {SUPABASE_URL}/functions/v1/delete-account` with
+   `Authorization: Bearer {session.access_token}` + `apikey: {anon key}`.
+   `{deleted:true}` → `clearAllLocalDataAndReload()`. Any other outcome →
+   `showAuthError()` (the existing auth-error dialog pattern) with the raw
+   message; the account is untouched on error.
+5. **SACRED-KEY EXCEPTION, singular:** `clearAllLocalDataAndReload()` is the
+   ONE sanctioned bulk-clear of every `ja_*` key plus the `sb-*` session —
+   every other rule in this file treats `ja_` keys as sacred/never-bulk-
+   cleared. This exception fires ONLY after the server has already confirmed
+   `{deleted:true}`; it is not a client-side shortcut, the account is
+   already gone by the time local storage is wiped. Toast then
+   `location.reload()` (~1.5s delay so the goodbye toast is actually seen)
+   returns the user to the splash as a brand-new visitor.
+6. **No schema changes.** Cascade delete is entirely a DB/Edge-Function
+   concern (FK `ON DELETE CASCADE`, verified against `schema.sql` +
+   `schema_s4.sql`); this build touches none of it.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -819,6 +859,8 @@ future config-only change, not a build.
 | Access validation (v0.17.0) | `selectedAccess = null` + block in submitPlant | with location block |
 | Dark tokens (v0.18.0) | `:root` remapped --stone-100/200/300/500/700, --ink, plus --glass/--glass-border/--glow-amber | top of style block |
 | Firefly glow (v0.18.0) | `#splash::before` dual radial gradients, `@keyframes firefly-pulse`, motion-safe guards | splash CSS |
+| Account deletion (v0.41.0) | `openDeleteConfirmSheet`, `doDeleteAccount`, `clearAllLocalDataAndReload`, `#delete-account-row` | after `doSignOut`, before `startEmailUpgrade` |
+| delete-account Edge Function (v0.41.0, dashboard-deployed, NOT in this repo) | `${SUPABASE_URL}/functions/v1/delete-account` — POST, Bearer session token + anon apikey | called from `doDeleteAccount`; deploy/redeploy happens in the Supabase dashboard, never from Claude Code |
 | Head/SEO block (v0.40.0) | meta description, OG/Twitter tags, favicon/apple-touch-icon links | `<head>`, after theme-color meta |
 | Footer contact link (v0.40.0) | `data-i18n="footer_contact"`, `mailto:` anchor | Profile footer, under version/honesty line |
 | robots.txt (v0.40.0) | `User-agent: *` / `Allow: /` | repo root |
@@ -850,8 +892,9 @@ with live frost/soil-temp data; the tier structure stays.
 ## I18N architecture (v0.37.0) — bilingual (en/es)
 
 - **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
-- **const STR** — `{ en: {...}, es: {...} }`. 181 keys each (exact parity, +1 in v0.40.0 for
-  `footer_contact`; +3 in v0.38.0 for the dormant affiliate strings). Lookup via `t(key, vars)`.
+- **const STR** — `{ en: {...}, es: {...} }`. 188 keys each (exact parity, +7 in v0.41.0 for
+  account-deletion strings; +1 in v0.40.0 for `footer_contact`; +3 in v0.38.0 for the dormant
+  affiliate strings). Lookup via `t(key, vars)`.
 - **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR[LANG][key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
 - **applyStrings()** — walker for static markup: `data-i18n="key"` sets textContent, `data-i18n-attr="attr:key"` sets attributes. Runs once on DOMContentLoaded.
 - **Dynamic sentences use templates**, never concatenation: `t('splash_welcome_back', { name: displayName })` → "Welcome back, {name}". Word order must be free to differ per language.
@@ -888,6 +931,11 @@ etc.). MyMeds' fan-out grew from an undocumented 2 to 8 — document as you go.
 - **`ja_lang` is SACRED** (v0.37.0) — user language preference, 'en' | 'es'.
   Snapshot → mutate → verify read-back lives in `setLang()`. After write,
   location.reload() re-renders the entire app in the new language.
+- **Account deletion is the ONE sanctioned exception to "sacred keys are
+  never bulk-cleared"** (v0.41.0) — `clearAllLocalDataAndReload()` wipes
+  every `ja_*` key plus the `sb-*` session, but ONLY after the
+  `delete-account` Edge Function has already confirmed `{deleted:true}`
+  server-side. Never call this clear path speculatively or on error.
 - **`ja_oauth_return` is sessionStorage, NOT sacred** (v0.12.0) —
   tab-scoped OAuth-return marker, set before linkIdentity, consumed by
   `handleOauthReturn()`. Do not add it to the sacred list; do not move
@@ -1198,5 +1246,12 @@ pass — see the "index.html landmarks" table for the script's own row).
   muted mailto contact link in the Profile footer (`footer_contact`
   en/es), `robots.txt` (Allow: /), `manifest.json` lang → neutral `en`.
   Schema unchanged. Map render untouched (tripwire 17 not invoked).
+- ✅ Delete account (v0.41.0): "Delete account" Settings row (durable
+  sessions only, below Clear my data), two-step confirm sheet with a
+  3-2-1 arm-countdown, calls the dashboard-deployed `delete-account` Edge
+  Function, and on `{deleted:true}` performs the one sanctioned bulk-clear
+  of `ja_*`/`sb-*` keys before reloading to the splash as a fresh visitor.
+  Client side only — no schema changes, map untouched (tripwire 17 not
+  invoked).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

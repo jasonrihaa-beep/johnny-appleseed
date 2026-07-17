@@ -2124,9 +2124,13 @@ body.tab-map #map-view {
           <span class="settings-row-label" style="color:var(--red-700)" data-i18n="settings_clear_data"></span>
           <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
         </div>
+        <div class="settings-row" id="delete-account-row" onclick="openDeleteConfirmSheet()" style="display:none">
+          <span class="settings-row-label" style="color:var(--red-400)" data-i18n="settings_delete_account"></span>
+          <span class="settings-row-value"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span>
+        </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.40.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.41.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
       <p style="font-size:11px;color:var(--stone-500);text-align:center;margin-top:6px"><a href="mailto:jasonrihaa@gmail.com" style="color:var(--stone-500)" data-i18n="footer_contact"></a></p>
 
     </div>
@@ -2380,6 +2384,13 @@ const STR = {
     toast_could_not_send_link: "Could not send the link",
     toast_add_email_reminder: "Add an email in Profile to keep your garden",
     footer_contact: "Contact",
+    settings_delete_account: "Delete account",
+    delete_confirm_title: "Delete your account?",
+    delete_confirm_body: "This permanently erases your account, plants, photos, comments, and follows. There is no undo and no recovery.",
+    delete_confirm_btn: "Delete everything",
+    delete_cancel: "Keep my garden",
+    delete_done: "Account deleted. Thank you for planting.",
+    delete_failed: "Could not delete account",
     months_short: "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec"
   },
   es: {
@@ -2577,6 +2588,13 @@ const STR = {
     toast_could_not_send_link: "No se pudo enviar el enlace",
     toast_add_email_reminder: "Agrega un correo en Perfil para conservar tu jardín",
     footer_contact: "Contacto",
+    settings_delete_account: "Eliminar cuenta",
+    delete_confirm_title: "¿Eliminar tu cuenta?",
+    delete_confirm_body: "Esto borra permanentemente tu cuenta, plantas, fotos, comentarios y seguidores. No hay deshacer ni recuperación.",
+    delete_confirm_btn: "Eliminar todo",
+    delete_cancel: "Conservar mi jardín",
+    delete_done: "Cuenta eliminada. Gracias por plantar.",
+    delete_failed: "No se pudo eliminar la cuenta",
     months_short: "ene,feb,mar,abr,may,jun,jul,ago,sep,oct,nov,dic"
   }
 };
@@ -3999,6 +4017,8 @@ function closeSheet() {
   document.getElementById('action-sheet-backdrop').classList.remove('open');
   document.getElementById('action-sheet').classList.remove('open');
   sheetActions = [];
+  // DELETE_SPEC v0.41.0: cancel the arm-countdown timer if the sheet closes early
+  if (deleteCountdownTimer) { clearInterval(deleteCountdownTimer); deleteCountdownTimer = null; }
   // v0.15.0: dismissing the photo-confirm sheet by any path counts as Cancel
   if (photoContinueResolve) { photoContinueResolve(false); photoContinueResolve = null; }
 }
@@ -4649,12 +4669,14 @@ function renderEmailRow(user) {
   const keepRow = document.getElementById('email-upgrade-row');
   const signInRow = document.getElementById('sign-in-row');
   const signOutRow = document.getElementById('sign-out-row');
+  const deleteAccountRow = document.getElementById('delete-account-row');
   if (!user || user.is_anonymous === true) {
     // No session OR anonymous session: always show Sign in with Google
     keepRow.style.display = 'none';
     document.getElementById('email-upgrade-edit').classList.remove('visible');
     signInRow.style.display = '';
     signOutRow.style.display = 'none';
+    deleteAccountRow.style.display = 'none';
     return;
   }
   // Durable session (non-anonymous): show protected state
@@ -4668,6 +4690,8 @@ function renderEmailRow(user) {
   document.getElementById('email-upgrade-edit').classList.remove('visible');
   // Sign out ONLY for non-anonymous sessions (tripwire 12)
   signOutRow.style.display = '';
+  // DELETE_SPEC v0.41.0: Delete account is the same durable-session-only gate as Sign out
+  deleteAccountRow.style.display = '';
 }
 
 /* ── S4d GOOGLE SIGN-IN + GUARDED SIGN OUT ── */
@@ -4700,6 +4724,77 @@ async function doSignOut() {
   } catch (e) {
     showToast(e.message || t('toast_could_not_sign_out'));
   }
+}
+
+/* ── DELETE_SPEC v0.41.0: ACCOUNT DELETION (client side; server is a
+   dashboard-deployed Edge Function, delete-account, which sweeps Storage
+   then deletes the auth user — cascades every table) ── */
+let deleteCountdownTimer = null;
+
+function openDeleteConfirmSheet() {
+  const sheet = document.getElementById('action-sheet');
+  const label = t('delete_confirm_btn');
+  sheet.innerHTML =
+    `<div class="sheet-title">${t('delete_confirm_title')}</div>` +
+    `<p style="font-size:13px;color:var(--stone-700);text-align:center;padding:0 8px 12px;line-height:1.5">${t('delete_confirm_body')}</p>` +
+    `<button class="sheet-btn danger" id="delete-confirm-btn" disabled onclick="doDeleteAccount()">${label} (3)</button>` +
+    `<button class="sheet-btn cancel" onclick="closeSheet()">${t('delete_cancel')}</button>`;
+  document.getElementById('action-sheet-backdrop').classList.add('open');
+  sheet.classList.add('open');
+  let secondsLeft = 3;
+  const btn = document.getElementById('delete-confirm-btn');
+  if (deleteCountdownTimer) clearInterval(deleteCountdownTimer);
+  deleteCountdownTimer = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft <= 0) {
+      clearInterval(deleteCountdownTimer);
+      deleteCountdownTimer = null;
+      btn.disabled = false;
+      btn.textContent = label;
+    } else {
+      btn.textContent = `${label} (${secondsLeft})`;
+    }
+  }, 1000);
+}
+
+async function doDeleteAccount() {
+  closeSheet();
+  if (!sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    // Same guard as sign-out: this call is meaningless (and the function requires
+    // auth anyway) without a durable, non-anonymous session.
+    if (!session || session.user.is_anonymous !== false) return;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY
+      }
+    });
+    const result = await res.json().catch(() => ({}));
+    if (res.ok && result && result.deleted === true) {
+      clearAllLocalDataAndReload();
+    } else {
+      throw new Error((result && (result.error || result.message)) || `HTTP ${res.status}`);
+    }
+  } catch (e) {
+    // Auth-error pattern: persistent dismissible dialog, raw message, account untouched
+    showAuthError(t('delete_failed'), e);
+  }
+}
+
+// The ONE sanctioned mass-clear of ja_*/sb-* keys — runs ONLY after the server
+// has confirmed {deleted:true}. Every other localStorage rule in this app treats
+// ja_ keys as sacred (never bulk-cleared); this is the sole authorized exception.
+function clearAllLocalDataAndReload() {
+  try {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('ja_') || k.startsWith('sb-')) localStorage.removeItem(k);
+    });
+  } catch (e) { /* best effort — reload proceeds regardless */ }
+  showToast(t('delete_done'));
+  setTimeout(() => location.reload(), 1500);
 }
 
 function startEmailUpgrade() {
