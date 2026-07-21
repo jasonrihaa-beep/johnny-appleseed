@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.43.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.43.1 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -927,6 +927,53 @@ future config-only change, not a build.
     branch are both dashboard-deployed, out of scope for Claude Code, and
     were NOT attempted here — this build only calls them.
 
+## Orphan sheet decisions (final — from ORPHAN2_SPEC.md, v0.43.1)
+
+1. **One-tap adoption was too abrupt (Jason's acceptance finding) — replaced
+   by a two-way sheet.** The orphan popup button (`.pin-adopt-btn`) no longer
+   calls `adoptPlant()` directly; it calls `openOrphanSheet(plantId)` and its
+   label changed from the now-unused `orphan_confirm` string to
+   `t('orphan_chip')` ("Still there?"/"¿Sigue ahí?") — the same text as the
+   pin-badges chip, intentionally, since the button *is* the question.
+   `orphan_confirm` stays defined (non-destructive — nothing instructed its
+   removal) but is dead copy as of this build.
+2. **`adoptPlant(id)` itself is byte-for-byte unchanged** from v0.43.0 — it is
+   now only ever invoked from the sheet's Yes button
+   (`onclick="closeSheet(); adoptPlant('${plantId}')"`). Two-statement inline
+   `onclick` is new to this codebase (previously every sheet action closed
+   via `runSheetAction`'s auto-close or closed itself as the first line of an
+   async handler); used here specifically because `adoptPlant` was frozen and
+   the alternative was a trivial one-line wrapper function that added nothing.
+3. **`openOrphanSheet(plantId)` is a dedicated builder**, same pattern as
+   `openDeleteConfirmSheet`/`openReportSheet` — `openSheet()`'s generic
+   contract has no body-paragraph slot, and this sheet needs title + body +
+   two custom actions + Cancel. Cancel uses the plain hardcoded "Cancel"
+   label (matching `openReportSheet`'s sibling convention for ad-hoc sheets,
+   not `openDeleteConfirmSheet`'s translated `delete_cancel` — that string is
+   delete-specific copy, not a generic Cancel key). Reuses the standing
+   `showActionSheet`/focus-trap/Escape-routes-to-Cancel infrastructure
+   unchanged (A11Y_SPEC v0.42.0) — no new dialog machinery.
+4. **"No — it's gone" writes a report, never deletes.** `reportOrphanGone(id)`
+   does `ensureAuth()` then `sb.from('reports').insert({ target_type: 'plant',
+   target_id: id, reason: 'orphan-gone' })` — same write-only rail as every
+   other report (S4C_SPEC decision 2: no read policy, dashboard is the mod
+   queue). The pin stays on the map exactly as before; a human judges the
+   `orphan-gone` reason in the Supabase dashboard and deletes the row
+   (service role) only if confirmed. No client delete path for orphans
+   exists or was added — correct, per spec.
+5. **Moderation note:** `reports` rows with `reason = 'orphan-gone'` are the
+   stale-orphan cleanup queue, same dashboard rail as every other report
+   type (target_id → `plants.id`, target_type `'plant'`) — nothing new to
+   build, just a new `reason` value to filter/sort by when triaging.
+6. **NEW i18n keys (207/207 EN/ES parity, up from 203):**
+   `orphan_sheet_body`, `orphan_adopt_yes`, `orphan_gone_no`,
+   `orphan_gone_thanks`.
+7. **No schema, no Edge Function, no map-renderer changes.** This build
+   edited only the orphan-popup button's handler/label (inside the standing
+   popup-styling exception, not a new tripwire-17 consumption — the circle/
+   dot/access-tier code from v0.43.0 is untouched) and added one sheet +
+   one report-insert function.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -954,6 +1001,7 @@ future config-only change, not a build.
 | Live feed container | `id="feed-live"` | feed view |
 | Map-inspire popup | `dbPinPopupHtml`, `onPinPopupOpen`, `togglePinInspire`, `dbPinAuthors` | after renderMarkers |
 | Orphan adoption (v0.43.0) | `adoptPlant`, `.pin-adopt-row`/`.pin-adopt-btn` (popup CSS), `isOrphan` in `dbPinPopupHtml`/`addHazeCircle`/`renderMarkers`/`loadFeed`/`openCardSheet` | `adoptPlant` after `togglePinInspire`, before `loadDbPins` |
+| Orphan sheet (v0.43.1) | `openOrphanSheet`, `reportOrphanGone` | both after `adoptPlant`, before `loadDbPins` |
 | S4b feed pills | `id="feed-pills"`, `setFeedMode` | feed view, below location bar |
 | S4b inspires | `toggleInspireDb`, `setInspireBtn` | after loadFeed |
 | S4b follows | `toggleFollowDb`, `setFollowBtns`, `.follow-btn` | after inspires |
@@ -1020,8 +1068,9 @@ with live frost/soil-temp data; the tier structure stays.
 ## I18N architecture (v0.37.0) — bilingual (en/es)
 
 - **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
-- **const STR** — `{ en: {...}, es: {...} }`. 203 keys each (exact parity, verified
-  programmatically at ship time; +4 in v0.43.0 for orphan/adoption + delete-override strings;
+- **const STR** — `{ en: {...}, es: {...} }`. 207 keys each (exact parity, verified
+  programmatically at ship time; +4 in v0.43.1 for the orphan two-way-sheet strings;
+  +4 in v0.43.0 for orphan/adoption + delete-override strings;
   +11 in v0.42.0 for `aria_*` a11y-label keys; +7 in v0.41.0 for
   account-deletion strings; +1 in v0.40.0 for `footer_contact`; +3 in v0.38.0 for the dormant
   affiliate strings). Lookup via `t(key, vars)`.
@@ -1407,5 +1456,13 @@ pass — see the "index.html landmarks" table for the script's own row).
   Edge Function changes — the `plants_adopt_orphan` RLS policy and the
   `delete-account` function's `retainPublic` branch are dashboard-deployed,
   out of scope for this build.
+- ✅ Orphan sheet (v0.43.1): the orphan popup button now opens a two-way
+  confirm sheet (`openOrphanSheet`) instead of adopting on a single tap —
+  "Yes — I'll tend it" calls the unchanged `adoptPlant()`; "No — it's gone"
+  writes a `reports` row (`reason: 'orphan-gone'`) via `reportOrphanGone()`
+  and leaves the pin exactly as-is, since removal is a dashboard moderation
+  call. 207/207 EN/ES parity (+4 keys). No schema, Edge Function, or
+  map-renderer changes — only the popup button's handler/label and one new
+  sheet.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store

@@ -2157,7 +2157,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.43.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.43.1 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
       <p style="font-size:11px;color:var(--stone-500);text-align:center;margin-top:6px"><a href="mailto:jasonrihaa@gmail.com" style="color:var(--stone-500)" data-i18n="footer_contact"></a></p>
 
     </div>
@@ -2423,6 +2423,11 @@ const STR = {
     orphan_chip: "Still there?",
     orphan_confirm: "It's still here",
     toast_adopted: "It's yours to tend now.",
+    // ORPHAN2_SPEC v0.43.1: two-way sheet
+    orphan_sheet_body: "If it's still growing, you can adopt it and become its steward — it joins your garden. If it's gone, let us know and we'll tidy the map.",
+    orphan_adopt_yes: "Yes — I'll tend it",
+    orphan_gone_no: "No — it's gone",
+    orphan_gone_thanks: "Thanks — we'll check on it.",
     // A11Y_SPEC v0.42.0: aria-label i18n migration
     aria_search: "Search",
     aria_notifications: "Notifications",
@@ -2644,6 +2649,11 @@ const STR = {
     orphan_chip: "¿Sigue ahí?",
     orphan_confirm: "Aquí sigue",
     toast_adopted: "Ahora te toca cuidarla.",
+    // ORPHAN2_SPEC v0.43.1: sheet de doble respuesta
+    orphan_sheet_body: "Si sigue creciendo, puedes adoptarla y convertirte en su cuidador — se une a tu jardín. Si ya no está, avísanos y limpiamos el mapa.",
+    orphan_adopt_yes: "Sí — yo la cuido",
+    orphan_gone_no: "No — ya no está",
+    orphan_gone_thanks: "Gracias — lo revisaremos.",
     // A11Y_SPEC v0.42.0: aria-label i18n migration
     aria_search: "Buscar",
     aria_notifications: "Notificaciones",
@@ -3077,9 +3087,11 @@ function dbPinPopupHtml(row) {
       : (row.access || 'private') === 'private'
         ? `<span class="pin-haze">${t('popup_haze_private')}</span>`
         : '') +
-    // ORPHAN_SPEC v0.43.0 decision 3: adoption CTA, orphan pins only
+    // ORPHAN_SPEC v0.43.0 decision 3, rewired by ORPHAN2_SPEC v0.43.1 decision 1:
+    // opens the two-way sheet instead of adopting directly — a real question
+    // deserves both answers.
     (isOrphan
-      ? `<div class="pin-adopt-row"><button class="pin-adopt-btn" onclick="adoptPlant('${row.id}')">${t('orphan_confirm')}</button></div>`
+      ? `<div class="pin-adopt-row"><button class="pin-adopt-btn" onclick="openOrphanSheet('${row.id}')">${t('orphan_chip')}</button></div>`
       : '') +
     `<div class="pin-inspire-row">
       <button class="inspire-btn pin-inspire"
@@ -3163,6 +3175,38 @@ async function adoptPlant(id) {
     loadFeed();
   } catch (e) {
     showToast(e.message || t('toast_could_not_save'));
+  }
+}
+
+// ORPHAN2_SPEC v0.43.1 decision 2: "Still there?" is a real question — the
+// popup button opens this two-way sheet instead of adopting on a single tap.
+// Dedicated builder (title + body paragraph + two custom actions), same
+// pattern as openDeleteConfirmSheet/openReportSheet — the generic openSheet()
+// has no body-text slot. adoptPlant() itself is untouched; it's now only
+// ever invoked from this sheet's Yes button.
+function openOrphanSheet(plantId) {
+  const sheet = document.getElementById('action-sheet');
+  sheet.innerHTML =
+    `<div class="sheet-title">${t('orphan_chip')}</div>` +
+    `<p style="font-size:13px;color:var(--stone-700);text-align:center;padding:0 8px 12px;line-height:1.5">${t('orphan_sheet_body')}</p>` +
+    `<button class="sheet-btn" onclick="closeSheet(); adoptPlant('${plantId}')">${t('orphan_adopt_yes')}</button>` +
+    `<button class="sheet-btn" onclick="closeSheet(); reportOrphanGone('${plantId}')">${t('orphan_gone_no')}</button>` +
+    `<button class="sheet-btn cancel" onclick="closeSheet()">Cancel</button>`;
+  showActionSheet(sheet);
+}
+
+// "No — it's gone": write-only report, same rail as every other report (decision 2).
+// The pin stays on the map; removal is a dashboard moderation call, not a client action.
+async function reportOrphanGone(plantId) {
+  if (!sb) { showToast(t('toast_sharing_offline')); return; }
+  try {
+    await ensureAuth();
+    const { error } = await sb.from('reports')
+      .insert({ target_type: 'plant', target_id: plantId, reason: 'orphan-gone' });
+    if (error) throw error;
+    showToast(t('orphan_gone_thanks'));
+  } catch (e) {
+    showToast(e.message || t('toast_could_not_report'));
   }
 }
 
