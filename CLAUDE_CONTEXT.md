@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.41.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.42.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -802,6 +802,60 @@ future config-only change, not a build.
    concern (FK `ON DELETE CASCADE`, verified against `schema.sql` +
    `schema_s4.sql`); this build touches none of it.
 
+## A11y decisions (final — from A11Y_SPEC.md, v0.42.0)
+
+1. **Single global `:focus-visible` rule.** One rule (`:focus-visible { outline:
+   2px solid var(--gold-400); outline-offset: 2px; }`) covers every interactive
+   element app-wide — no per-component focus styling. Placed after
+   `.form-input`'s `outline: none` in source order so it wins at equal
+   specificity. `:focus-visible` (not `:focus`) means mouse/touch users see
+   nothing new; only keyboard/programmatic focus shows the ring.
+2. **The action sheet is a real dialog.** `#action-sheet` is `role="dialog"
+   aria-modal="true"` (was `role="menu"`) and is shared by every variant —
+   generic menu (`openSheet`), report, setup, delete-confirm, and the
+   photo-upload-failed confirm (`confirmLogWithoutPhoto`). One shared pair of
+   functions drives all of them: `showActionSheet(sheet)` (call in place of the
+   old `backdrop.classList.add('open'); sheet.classList.add('open')` pair)
+   captures `document.activeElement` as the invoker, focuses the sheet's first
+   non-disabled focusable element, and installs a keydown handler that traps
+   Tab/Shift-Tab inside the sheet and routes Escape to `.sheet-btn.cancel`
+   (never a `.danger`/confirm action). `closeSheet()` calls `releaseSheetFocus()`
+   to tear down the handler and return focus to the invoker. The
+   delete-confirm sheet's 3-2-1 armed button starts `disabled`, so the trap's
+   first-focusable naturally lands on Cancel until the timer enables it —
+   Escape/immediate-Enter can never fire the destructive action.
+3. **aria-labels are STR keys.** New `aria_*` keys (`aria_search`,
+   `aria_notifications`, `aria_notif_close`, `aria_plant_fab`,
+   `aria_pick_cancel`, `aria_feed_refresh`, `aria_nav_main`,
+   `aria_overflow_options`, `aria_comment_btn`, `aria_comment_overflow`,
+   `aria_avatar_color`) in both dictionaries, EN/ES parity verified
+   programmatically (199/199, zero one-sided keys). Static markup uses the
+   existing `data-i18n-attr="aria-label:key"` rail; markup built in JS template
+   literals (feed card overflow/comment buttons, comment-row overflow, setup
+   avatar-color swatches) calls `t('key')` directly since `applyStrings()` only
+   walks the DOM once on boot and never sees content injected later.
+   `profile_avatar_label` already existed pre-v0.42.0 and was left as-is.
+4. **Tab bar + bell semantics.** `switchTab()` sets `aria-current="page"` on
+   the active `.tab-btn` and removes it from the others (initial Map tab gets
+   it statically in HTML to match its `.active` class). `#notif-bell` gets
+   `aria-expanded` toggled in `openNotifPanel()`/`closeNotifPanel()`.
+5. **Feed/pin photo alts already used the plant name** (`alt="${esc(row.
+   plant_name)}"`, both `dbPinPopupHtml` and the feed card renderer) —
+   pre-existing from PHOTO_SPEC/FEEDCARD_SPEC, not new in v0.42.0.
+6. **Interactive-element audit (div/span `onclick` → real controls).** 12
+   fixed with `role="button" tabindex="0"` plus an inline `onkeydown` that
+   calls `.click()` on Enter/Space: `#profile-avatar`, `#profile-name-display`,
+   10 `.settings-row` divs (sign-in, email-upgrade, language, AI-key-stub,
+   radius-stub, reminders-stub, blocked-list toggle, sign-out, clear-data,
+   delete-account), and the dynamic `.notif-row` in `openNotifPanel`'s
+   template. **Deliberately NOT converted:** `#action-sheet-backdrop` and
+   `#notif-backdrop` — full-viewport click-to-dismiss scrims, not semantic
+   controls; a keyboard user's equivalent path is already Escape (routes to
+   Cancel per decision 2) or Tab to the Cancel button, so adding them to the
+   tab order would be a meaningless stop, not an affordance.
+7. **No visual redesign.** The outline is the only change visible to a mouse
+   user; `role`/`tabindex`/`aria-*` additions carry no CSS.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -859,6 +913,8 @@ future config-only change, not a build.
 | Access validation (v0.17.0) | `selectedAccess = null` + block in submitPlant | with location block |
 | Dark tokens (v0.18.0) | `:root` remapped --stone-100/200/300/500/700, --ink, plus --glass/--glass-border/--glow-amber | top of style block |
 | Firefly glow (v0.18.0) | `#splash::before` dual radial gradients, `@keyframes firefly-pulse`, motion-safe guards | splash CSS |
+| Global focus ring (v0.42.0) | `:focus-visible { outline: 2px solid var(--gold-400) }` | CSS, right after `.form-input:focus` |
+| Sheet focus-trap component (v0.42.0) | `showActionSheet(sheet)`, `releaseSheetFocus()`, `SHEET_FOCUSABLE`, `sheetInvoker`, `sheetKeydownHandler` | before `openSheet`; called by every `#action-sheet` opener (`openSheet`, `openReportSheet`, `openSetupSheet`, `openDeleteConfirmSheet`, `confirmLogWithoutPhoto`); torn down in `closeSheet` |
 | Account deletion (v0.41.0) | `openDeleteConfirmSheet`, `doDeleteAccount`, `clearAllLocalDataAndReload`, `#delete-account-row` | after `doSignOut`, before `startEmailUpgrade` |
 | delete-account Edge Function (v0.41.0, dashboard-deployed, NOT in this repo) | `${SUPABASE_URL}/functions/v1/delete-account` — POST, Bearer session token + anon apikey | called from `doDeleteAccount`; deploy/redeploy happens in the Supabase dashboard, never from Claude Code |
 | Head/SEO block (v0.40.0) | meta description, OG/Twitter tags, favicon/apple-touch-icon links | `<head>`, after theme-color meta |
@@ -892,7 +948,8 @@ with live frost/soil-temp data; the tier structure stays.
 ## I18N architecture (v0.37.0) — bilingual (en/es)
 
 - **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
-- **const STR** — `{ en: {...}, es: {...} }`. 188 keys each (exact parity, +7 in v0.41.0 for
+- **const STR** — `{ en: {...}, es: {...} }`. 199 keys each (exact parity, verified
+  programmatically at ship time; +11 in v0.42.0 for `aria_*` a11y-label keys; +7 in v0.41.0 for
   account-deletion strings; +1 in v0.40.0 for `footer_contact`; +3 in v0.38.0 for the dormant
   affiliate strings). Lookup via `t(key, vars)`.
 - **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR[LANG][key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
@@ -1253,5 +1310,16 @@ pass — see the "index.html landmarks" table for the script's own row).
   of `ja_*`/`sb-*` keys before reloading to the splash as a fresh visitor.
   Client side only — no schema changes, map untouched (tripwire 17 not
   invoked).
+- ✅ A11y (v0.42.0): global `:focus-visible` ring (mouse/touch unaffected),
+  `#action-sheet` is a real dialog (`role="dialog" aria-modal="true"`, shared
+  `showActionSheet`/`releaseSheetFocus` focus trap across every sheet variant,
+  Escape always routes to Cancel, focus returns to the invoker on close), 11
+  new `aria_*` STR keys replacing hardcoded English labels (199/199 EN/ES
+  parity verified), `aria-current="page"` on the active tab, `aria-expanded`
+  on the notif bell, 12 non-button `onclick` divs converted to
+  `role="button" tabindex="0"` + Enter/Space keydown (modal backdrops
+  deliberately excluded — Escape/Cancel already cover them). Feed/pin photo
+  alts already used the plant name pre-v0.42.0, confirmed not new. Schema
+  unchanged. Map untouched (tripwire 17 not invoked).
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
