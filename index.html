@@ -277,6 +277,23 @@ body.tab-map #map-view {
   color: var(--green-400);
 }
 
+/* ORPHAN_SPEC v0.43.0 (decision 3): adoption CTA, orphan pins only */
+.leaflet-popup-content .pin-adopt-row {
+  margin-top: 8px;
+}
+.leaflet-popup-content .pin-adopt-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border-radius: 100px;
+  border: 1px solid rgba(244,161,39,0.4);
+  background: rgba(244,161,39,0.12);
+  color: var(--gold-400);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.leaflet-popup-content .pin-adopt-btn:hover { background: rgba(244,161,39,0.2); }
+
 /* v0.38.0 affiliate CTA in DB-pin popups (dormant) */
 .leaflet-popup-content .pin-affiliate-row {
   margin-top: 8px;
@@ -2140,7 +2157,7 @@ body.tab-map #map-view {
         </div>
       </div>
 
-      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.42.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
+      <p style="font-size:11px;color:var(--stone-500);text-align:center;line-height:1.7" translate="no">Johnny Appleseed v0.43.0 &middot; AIRIHA LLC<br>No tracking. No ads. No data selling.</p>
       <p style="font-size:11px;color:var(--stone-500);text-align:center;margin-top:6px"><a href="mailto:jasonrihaa@gmail.com" style="color:var(--stone-500)" data-i18n="footer_contact"></a></p>
 
     </div>
@@ -2396,11 +2413,16 @@ const STR = {
     footer_contact: "Contact",
     settings_delete_account: "Delete account",
     delete_confirm_title: "Delete your account?",
-    delete_confirm_body: "This permanently erases your account, plants, photos, comments, and follows. There is no undo and no recovery.",
+    delete_confirm_body: "Your account, name, photos, notes, comments, and private plantings are permanently erased. Open-harvest plantings stay on the map without your name, waiting for a neighbor to tend them.",
     delete_confirm_btn: "Delete everything",
     delete_cancel: "Keep my garden",
+    delete_override_label: "Also remove my open-harvest plantings",
     delete_done: "Account deleted. Thank you for planting.",
     delete_failed: "Could not delete account",
+    // ORPHAN_SPEC v0.43.0: adoption
+    orphan_chip: "Still there?",
+    orphan_confirm: "It's still here",
+    toast_adopted: "It's yours to tend now.",
     // A11Y_SPEC v0.42.0: aria-label i18n migration
     aria_search: "Search",
     aria_notifications: "Notifications",
@@ -2612,11 +2634,16 @@ const STR = {
     footer_contact: "Contacto",
     settings_delete_account: "Eliminar cuenta",
     delete_confirm_title: "¿Eliminar tu cuenta?",
-    delete_confirm_body: "Esto borra permanentemente tu cuenta, plantas, fotos, comentarios y seguidores. No hay deshacer ni recuperación.",
+    delete_confirm_body: "Tu cuenta, nombre, fotos, notas, comentarios y plantaciones privadas se borran permanentemente. Las plantaciones de cosecha abierta quedan en el mapa sin tu nombre, esperando a que un vecino las cuide.",
     delete_confirm_btn: "Eliminar todo",
     delete_cancel: "Conservar mi jardín",
+    delete_override_label: "Eliminar también mis plantaciones de cosecha abierta",
     delete_done: "Cuenta eliminada. Gracias por plantar.",
     delete_failed: "No se pudo eliminar la cuenta",
+    // ORPHAN_SPEC v0.43.0: adopción
+    orphan_chip: "¿Sigue ahí?",
+    orphan_confirm: "Aquí sigue",
+    toast_adopted: "Ahora te toca cuidarla.",
     // A11Y_SPEC v0.42.0: aria-label i18n migration
     aria_search: "Buscar",
     aria_notifications: "Notificaciones",
@@ -2925,18 +2952,24 @@ function dotIcon(color, small) {
 // One rendering path for every pin (decision 6). TYPE keeps color,
 // ACCESS sets prominence; the old gold Open-harvest ring lives on as
 // the public-tier stroke. Circle and dot share the popup — both tappable.
-function addHazeCircle(lat, lng, type, access, popupHtml) {
+// ORPHAN_SPEC v0.43.0 tripwire-17 exception (decision 2, consumed by this build,
+// NOT extended further): isOrphan (user_id null AND access='public') adds dashArray
+// '6 6' + drops fillOpacity to 0.15. Nothing else here changes — radius, colors,
+// owned-pin tiers, dot logic, pick mode all stay frozen.
+function addHazeCircle(lat, lng, type, access, popupHtml, isOrphan) {
   const typeColor = PIN_COLORS[type] || PIN_COLORS.both;
   const isPrivate = access === 'private';
   const stroke = isPrivate ? '#8A9988' : (access === 'public' ? '#F4A127' : typeColor);
-  const fillOp = access === 'public' ? 0.25 : (isPrivate ? 0.08 : 0.15);
-  const circle = L.circle([lat, lng], {
+  const fillOp = isOrphan ? 0.15 : (access === 'public' ? 0.25 : (isPrivate ? 0.08 : 0.15));
+  const circleOpts = {
     radius: HAZE_RADIUS_M,
     color: stroke,
     weight: access === 'public' ? 2 : 1.5,
     fillColor: isPrivate ? '#8A9988' : typeColor,
     fillOpacity: fillOp
-  }).addTo(map).bindPopup(popupHtml); // Circle gets popup too (task 1)
+  };
+  if (isOrphan) circleOpts.dashArray = '6 6';
+  const circle = L.circle([lat, lng], circleOpts).addTo(map).bindPopup(popupHtml); // Circle gets popup too (task 1)
   const dot = L.marker([lat, lng], { icon: dotIcon(isPrivate ? '#8A9988' : typeColor, isPrivate) })
     .bindPopup(popupHtml); // Dot popup binds before adding to group
   dotMarkers.addLayer(dot); // Add dot to the layerGroup, not directly to map
@@ -3003,7 +3036,8 @@ function renderMarkers(filter) {
       (filter === 'open' ? row.access === 'public' : (row.tags || []).includes(filter));
     if (!show) return;
     // Missing access on old cached rows gets the quietest tier (defensive)
-    addHazeCircle(row.lat, row.lng, pinType(row.tags), row.access || 'private', dbPinPopupHtml(row));
+    const isOrphan = row.user_id == null && (row.access || 'private') === 'public'; // decision 2
+    addHazeCircle(row.lat, row.lng, pinType(row.tags), row.access || 'private', dbPinPopupHtml(row), isOrphan);
   });
 }
 
@@ -3011,7 +3045,9 @@ function renderMarkers(filter) {
 // Builder for DB-pin popups ONLY — example PIN_SPOTS keep simple popups
 // (not DB rows: an inspire insert would violate the FK). esc() everywhere.
 function dbPinPopupHtml(row) {
-  const author = esc(dbPinAuthors[row.user_id] || 'Planter');
+  // decision 8: orphans (user_id null) have no profile row — never index dbPinAuthors with null
+  const isOrphan = row.user_id == null;
+  const author = esc(isOrphan ? t('profile_default_name') : (dbPinAuthors[row.user_id] || t('profile_default_name')));
   const seed = '<path d="M12 22V12M12 12C12 6 7 3 3 5c0 6 4 9 9 9z"/><path d="M12 12c0-6 5-9 9-7-1 6-5 9-9 9z"/>';
   // Missing kind on old cached rows renders as planted (defensive default)
   const isFind = row.kind === 'discovered';
@@ -3030,6 +3066,7 @@ function dbPinPopupHtml(row) {
     (row.note ? `<span class="pin-note">${esc(row.note)}</span>` : '') +
     `<div class="pin-badges">` +
       (row.access === 'public' ? `<span class="pin-chip">${t('popup_open_harvest')}</span>` : '') +
+      (isOrphan ? `<span class="pin-chip">${t('orphan_chip')}</span>` : '') +
       (row.score != null ? `<span class="pin-score">${t('popup_score')} ${row.score}</span>` : '') +
     `</div>` +
     // v0.17.0 haze copy — treasure hunt ONLY on public (decision 3); the
@@ -3040,6 +3077,10 @@ function dbPinPopupHtml(row) {
       : (row.access || 'private') === 'private'
         ? `<span class="pin-haze">${t('popup_haze_private')}</span>`
         : '') +
+    // ORPHAN_SPEC v0.43.0 decision 3: adoption CTA, orphan pins only
+    (isOrphan
+      ? `<div class="pin-adopt-row"><button class="pin-adopt-btn" onclick="adoptPlant('${row.id}')">${t('orphan_confirm')}</button></div>`
+      : '') +
     `<div class="pin-inspire-row">
       <button class="inspire-btn pin-inspire"
         data-plant="${esc(row.id)}" data-inspired="false" data-count="0"
@@ -3106,6 +3147,25 @@ async function togglePinInspire(btn) {
   }
 }
 
+// ORPHAN_SPEC v0.43.0 decision 3: claim an orphaned (user_id null) public planting.
+// The .is('user_id', null) guard makes double-adoption a clean no-op race — a second
+// tap simply updates 0 rows, never two people owning the same pin.
+async function adoptPlant(id) {
+  try {
+    const session = await ensureAuth();
+    const { data, error } = await sb.from('plants')
+      .update({ user_id: session.user.id, confirmed_at: new Date().toISOString() })
+      .eq('id', id).is('user_id', null).select();
+    if (error) throw error;
+    if (!data || !data.length) { showToast(t('toast_could_not_save')); return; }
+    showToast(t('toast_adopted'));
+    if (map) loadDbPins();
+    loadFeed();
+  } catch (e) {
+    showToast(e.message || t('toast_could_not_save'));
+  }
+}
+
 async function loadDbPins() {
   if (!sb || !map) return;
   try {
@@ -3118,7 +3178,8 @@ async function loadDbPins() {
     dbPlants = data || [];
     // Planter names for popups — existing profiles in-list pattern
     dbPinAuthors = {};
-    const uids = [...new Set(dbPlants.map(r => r.user_id))];
+    // decision 8: orphans have user_id null — never send null into .in() lookups
+    const uids = [...new Set(dbPlants.map(r => r.user_id).filter(Boolean))];
     if (uids.length) {
       const { data: profs } = await sb.from('profiles')
         .select('id, display_name').in('id', uids);
@@ -3737,7 +3798,8 @@ async function loadFeed() {
     }
     emptyEl.classList.remove('visible');
     // Author names via a second query — no joins needed at MVP scale
-    const ids = [...new Set(plants.map(r => r.user_id))];
+    // decision 8: orphans have user_id null — never send null into .in() lookups
+    const ids = [...new Set(plants.map(r => r.user_id).filter(Boolean))];
     const { data: profs } = await sb.from('profiles')
       .select('id, display_name, avatar_color').in('id', ids);
     const profById = {};
@@ -3764,7 +3826,9 @@ async function loadFeed() {
       milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, b.lat, b.lng));
     box.innerHTML = plants.map(row => {
       const prof = profById[row.user_id];
-      const author = esc(prof && prof.display_name ? prof.display_name : 'Planter');
+      // decision 8: orphans (user_id null) have no profile row — fall back to the
+      // translated default name, never a hardcoded 'Planter'
+      const author = esc(prof && prof.display_name ? prof.display_name : t('profile_default_name'));
       const initials = esc(author.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'P');
       const color = prof && prof.avatar_color ? esc(prof.avatar_color) : '#4A7C59';
       const dist = milesBetween(REGION_CENTER.lat, REGION_CENTER.lng, row.lat, row.lng);
@@ -3774,7 +3838,8 @@ async function loadFeed() {
       const count = inspCount[row.id] || 0;
       const nComments = cmtCount[row.id] || 0;
       const isOwn = myUserId && row.user_id === myUserId;
-      const followBtn = isOwn ? '' :
+      const isOrphan = row.user_id == null; // decision 4: orphan cards get no follow button
+      const followBtn = (isOwn || isOrphan) ? '' :
         `<button class="follow-btn${followedIds.has(row.user_id) ? ' following' : ''}"
           data-author="${esc(row.user_id)}"
           data-following="${followedIds.has(row.user_id)}"
@@ -4108,10 +4173,15 @@ function openCardSheet(btn) {
   const plantId = btn.dataset.plant;
   const author = btn.dataset.author;
   const isOwn = myUserId && author === myUserId;
-  // Own content: Delete only. Others': Report + Block, never Delete.
+  const isOrphan = !author; // ORPHAN_SPEC v0.43.0 decision 4: no owner, so no one to block
+  // Own content: Delete only. Orphans: Report only, no Block. Others': Report + Block, never Delete.
   if (isOwn) {
     openSheet([
       { label: 'Delete planting', danger: true, handler: () => confirmDeletePlant(plantId) }
+    ]);
+  } else if (isOrphan) {
+    openSheet([
+      { label: 'Report', handler: () => openReportSheet('plant', plantId) }
     ]);
   } else {
     openSheet([
@@ -4818,6 +4888,12 @@ function openDeleteConfirmSheet() {
   sheet.innerHTML =
     `<div class="sheet-title">${t('delete_confirm_title')}</div>` +
     `<p style="font-size:13px;color:var(--stone-700);text-align:center;padding:0 8px 12px;line-height:1.5">${t('delete_confirm_body')}</p>` +
+    // ORPHAN_SPEC v0.43.0 decision 5: default OFF — open-harvest plantings are
+    // retained as orphans unless the user opts in to removing them too.
+    `<label style="display:flex;align-items:center;gap:8px;padding:8px;font-size:13px;color:var(--ink);cursor:pointer" for="delete-override-toggle">
+      <input type="checkbox" id="delete-override-toggle" style="width:16px;height:16px;accent-color:var(--red-400)">
+      ${t('delete_override_label')}
+    </label>` +
     `<button class="sheet-btn danger" id="delete-confirm-btn" disabled onclick="doDeleteAccount()">${label} (3)</button>` +
     `<button class="sheet-btn cancel" onclick="closeSheet()">${t('delete_cancel')}</button>`;
   showActionSheet(sheet);
@@ -4838,6 +4914,11 @@ function openDeleteConfirmSheet() {
 }
 
 async function doDeleteAccount() {
+  // ORPHAN_SPEC v0.43.0 decision 5: read the override toggle before the sheet
+  // is torn down. Default OFF -> retainPublic true (open-harvest pins survive
+  // as orphans); ON -> retainPublic false (everything goes).
+  const overrideEl = document.getElementById('delete-override-toggle');
+  const retainPublic = !(overrideEl && overrideEl.checked);
   closeSheet();
   if (!sb) return;
   try {
@@ -4849,8 +4930,10 @@ async function doDeleteAccount() {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${session.access_token}`,
-        'apikey': SUPABASE_ANON_KEY
-      }
+        'apikey': SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ retainPublic })
     });
     const result = await res.json().catch(() => ({}));
     if (res.ok && result && result.deleted === true) {

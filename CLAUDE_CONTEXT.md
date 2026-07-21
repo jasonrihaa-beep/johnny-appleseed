@@ -7,7 +7,7 @@ Written for the agent, not for humans.
 
 ## App identity
 
-- **Johnny Appleseed** v0.42.0 — social planting network. "Plant. Share. Grow Together."
+- **Johnny Appleseed** v0.43.0 — social planting network. "Plant. Share. Grow Together."
 - AIRIHA LLC (same privacy-first DNA as MyMeds AI: no tracking, no ads, no accounts required to browse)
 - Single-file PWA: `index.html` (~1,470 lines) + `sw.js` + `manifest.json`
 - Deploy: GitHub → Render static site, auto-deploy on push to `main` — canonical URL https://johnnyappleseed.farm (custom domain, certificate issued); onrender.com mirror works but .farm is the production domain
@@ -856,6 +856,77 @@ future config-only change, not a build.
 7. **No visual redesign.** The outline is the only change visible to a mouse
    user; `role`/`tabindex`/`aria-*` additions carry no CSS.
 
+## Orphan / adoption decisions (final — from ORPHAN_SPEC.md, v0.43.0)
+
+1. **Orphan state IS `user_id` null** — no enum, no extra table. Account
+   deletion now retains `access='public'` plantings as anonymized orphans
+   (user_id null, note/photo scrubbed server-side by the Edge Function)
+   unless the user opts out via the delete-confirm override toggle.
+2. **Adoption = one guarded UPDATE.** `adoptPlant(id)` runs `ensureAuth()`
+   then `sb.from('plants').update({ user_id, confirmed_at: now })
+   .eq('id', id).is('user_id', null)`. The `.is('user_id', null)` guard
+   makes double-adoption (two people tapping the same orphan) a clean
+   no-op race — the loser's update matches 0 rows (no error), and the
+   client shows the generic `toast_could_not_save` rather than fabricate
+   a specific outcome. Adopted pins re-enter the normal lifecycle; if the
+   adopter later deletes their own account (override off), the pin
+   orphans again — this is expected, not a bug.
+3. **TRIPWIRE 17 — narrow scoped exception, CONSUMED by this build, map
+   re-frozen after.** `addHazeCircle(lat, lng, type, access, popupHtml,
+   isOrphan)` gained one new parameter. When `isOrphan` (user_id null AND
+   access='public'), the circle gets `dashArray: '6 6'` and
+   `fillOpacity: 0.15` (down from the public tier's 0.25). Nothing else
+   in the map renderer changed — radius, colors, owned-pin access tiers,
+   dot logic (dots never dash), and pick mode are untouched. No further
+   exceptions may be taken without a new spec.
+4. **Orphan popups (`dbPinPopupHtml`):** byline falls back to
+   `t('profile_default_name')` (translated "Planter"/"Jardinero", not the
+   old hardcoded English literal), a gold `orphan_chip` pin-chip
+   ("Still there?"/"¿Sigue ahí?"), and — orphans only — a
+   `.pin-adopt-btn` calling `adoptPlant(row.id)` inline (its argument is
+   the plant's UUID, not user text, so it is embedded unescaped — same
+   convention as `submitReport('${targetType}', '${targetId}')`).
+5. **Feed cards for orphans:** byline uses the same `t('profile_default_name')`
+   fallback; the follow button is suppressed (`isOwn || isOrphan` check in
+   `loadFeed`'s row template — nobody to follow); `openCardSheet` adds an
+   `isOrphan = !author` branch (author is `''` after `esc(null)`) that
+   shows Report only, no Block. Comment threads stay live and fully
+   functional — the plant is still community property, only ownership is
+   gone.
+6. **Null-hardening sweep (decision 8 of the spec):** every place that
+   builds a `.in('id', uids)` profile lookup from `plants.user_id` now
+   filters falsy ids first (`.filter(Boolean)`) — `loadDbPins` and
+   `loadFeed` — so a null orphan id is never sent into a Postgrest `in`
+   list. Comment author lookups were NOT touched: `comments.user_id`
+   always has a DB default and is never null, so that's a different
+   (unaffected) code path.
+7. **Delete-confirm sheet v2:** body copy replaced with the honest orphan-
+   aware text (`delete_confirm_body`, both languages — see decision 6
+   below); a new toggle row (`delete_override_label`, native checkbox,
+   default **unchecked**) sits between the body and the 3-2-1 countdown
+   button. `doDeleteAccount()` reads the checkbox *before* `closeSheet()`
+   runs (checkbox state must be captured while the sheet still exists),
+   then POSTs `{"retainPublic": <!checked>}` as a JSON body (added
+   `Content-Type: application/json`, previously no body was sent at all).
+   Countdown timer, danger-button arm delay, and Cancel path are
+   unchanged from v0.41.0.
+8. **NEW i18n keys (203/203 EN/ES parity, up from 199):**
+   `delete_override_label`, `orphan_chip`, `orphan_confirm`,
+   `toast_adopted` — plus `delete_confirm_body`'s text was replaced
+   in-place (not a new key). The 0-row adoption race and any adoption
+   `catch` branch both reuse the existing generic `toast_could_not_save`
+   — no new key was minted for that path (spec listed exactly 5 new/
+   changed strings and no more).
+9. **DEFERRED, documented (not built):** attaching a photo/note at the
+   moment of adoption — no edit-existing-plant path exists anywhere in
+   the app yet, orphan adoption doesn't invent one; orphan auto-fade
+   after a long unconfirmed period — a future decision, no timer exists.
+10. **No schema changes, no Edge Function changes, in this build.** The
+    `plants_adopt_orphan` RLS policy (permits exactly the adoption UPDATE
+    in decision 2) and the `delete-account` Edge Function's `retainPublic`
+    branch are both dashboard-deployed, out of scope for Claude Code, and
+    were NOT attempted here — this build only calls them.
+
 ## index.html landmarks (lines drift — grep, don't trust numbers)
 
 | What | Anchor | Approx |
@@ -882,6 +953,7 @@ future config-only change, not a build.
 | Supabase wiring | `ensureAuth`, `submitPlant`, `loadDbPins`, `loadFeed`, `esc(` | after selectTag |
 | Live feed container | `id="feed-live"` | feed view |
 | Map-inspire popup | `dbPinPopupHtml`, `onPinPopupOpen`, `togglePinInspire`, `dbPinAuthors` | after renderMarkers |
+| Orphan adoption (v0.43.0) | `adoptPlant`, `.pin-adopt-row`/`.pin-adopt-btn` (popup CSS), `isOrphan` in `dbPinPopupHtml`/`addHazeCircle`/`renderMarkers`/`loadFeed`/`openCardSheet` | `adoptPlant` after `togglePinInspire`, before `loadDbPins` |
 | S4b feed pills | `id="feed-pills"`, `setFeedMode` | feed view, below location bar |
 | S4b inspires | `toggleInspireDb`, `setInspireBtn` | after loadFeed |
 | S4b follows | `toggleFollowDb`, `setFollowBtns`, `.follow-btn` | after inspires |
@@ -915,7 +987,7 @@ future config-only change, not a build.
 | Firefly glow (v0.18.0) | `#splash::before` dual radial gradients, `@keyframes firefly-pulse`, motion-safe guards | splash CSS |
 | Global focus ring (v0.42.0) | `:focus-visible { outline: 2px solid var(--gold-400) }` | CSS, right after `.form-input:focus` |
 | Sheet focus-trap component (v0.42.0) | `showActionSheet(sheet)`, `releaseSheetFocus()`, `SHEET_FOCUSABLE`, `sheetInvoker`, `sheetKeydownHandler` | before `openSheet`; called by every `#action-sheet` opener (`openSheet`, `openReportSheet`, `openSetupSheet`, `openDeleteConfirmSheet`, `confirmLogWithoutPhoto`); torn down in `closeSheet` |
-| Account deletion (v0.41.0) | `openDeleteConfirmSheet`, `doDeleteAccount`, `clearAllLocalDataAndReload`, `#delete-account-row` | after `doSignOut`, before `startEmailUpgrade` |
+| Account deletion (v0.41.0, sheet v2 in v0.43.0) | `openDeleteConfirmSheet`, `doDeleteAccount`, `clearAllLocalDataAndReload`, `#delete-account-row`, `#delete-override-toggle` (v0.43.0) | after `doSignOut`, before `startEmailUpgrade` |
 | delete-account Edge Function (v0.41.0, dashboard-deployed, NOT in this repo) | `${SUPABASE_URL}/functions/v1/delete-account` — POST, Bearer session token + anon apikey | called from `doDeleteAccount`; deploy/redeploy happens in the Supabase dashboard, never from Claude Code |
 | Head/SEO block (v0.40.0) | meta description, OG/Twitter tags, favicon/apple-touch-icon links | `<head>`, after theme-color meta |
 | Footer contact link (v0.40.0) | `data-i18n="footer_contact"`, `mailto:` anchor | Profile footer, under version/honesty line |
@@ -948,8 +1020,9 @@ with live frost/soil-temp data; the tier structure stays.
 ## I18N architecture (v0.37.0) — bilingual (en/es)
 
 - **let LANG** (line ~2100) — resolved on boot: ja_lang if set → else navigator.language starts with 'es' → 'es' → else 'en'. Auto-detect fires only when ja_lang is unset.
-- **const STR** — `{ en: {...}, es: {...} }`. 199 keys each (exact parity, verified
-  programmatically at ship time; +11 in v0.42.0 for `aria_*` a11y-label keys; +7 in v0.41.0 for
+- **const STR** — `{ en: {...}, es: {...} }`. 203 keys each (exact parity, verified
+  programmatically at ship time; +4 in v0.43.0 for orphan/adoption + delete-override strings;
+  +11 in v0.42.0 for `aria_*` a11y-label keys; +7 in v0.41.0 for
   account-deletion strings; +1 in v0.40.0 for `footer_contact`; +3 in v0.38.0 for the dormant
   affiliate strings). Lookup via `t(key, vars)`.
 - **t(key, vars)** — template interpolation for `{name}`-style placeholders, falls back to `STR[LANG][key]`, console.warns on missing keys, NEVER returns undefined (returns the key itself as last resort).
@@ -1321,5 +1394,18 @@ pass — see the "index.html landmarks" table for the script's own row).
   deliberately excluded — Escape/Cancel already cover them). Feed/pin photo
   alts already used the plant name pre-v0.42.0, confirmed not new. Schema
   unchanged. Map untouched (tripwire 17 not invoked).
+- ✅ Orphan / adoption (v0.43.0): account deletion now retains `access='public'`
+  plantings as anonymized orphans (`user_id` null) unless an opt-out override
+  toggle is checked in the delete-confirm sheet (default off — orphans are the
+  default outcome). Orphans render as dashed, dimmer (0.15 fill) open-harvest
+  circles (tripwire-17 exception consumed, map re-frozen after), popups carry
+  a "Still there?" chip and an "It's still here" adopt button
+  (`adoptPlant()`, guarded UPDATE, race-safe no-op on double-tap), feed cards
+  drop the follow button and the Block option for orphan content. Byline
+  fallbacks everywhere switched from a hardcoded English "Planter" literal to
+  `t('profile_default_name')`. 203/203 EN/ES parity (+4 keys). No schema or
+  Edge Function changes — the `plants_adopt_orphan` RLS policy and the
+  `delete-account` function's `retainPublic` branch are dashboard-deployed,
+  out of scope for this build.
 - ⏳ S3: Open-Meteo + USDA PHZM → PlantScore v2 (live frost/soil temp)
 - ⏳ BYOK Claude layer · ⏳ PWABuilder → Play Store
